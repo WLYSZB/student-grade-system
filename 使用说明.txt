@@ -1,0 +1,39 @@
+学生成绩管理系统 v1.0 - 使用说明
+====================================
+
+一、环境要求
+-----------
+1. 安装 Java 17 或更高版本（https://adoptium.net）
+2. 安装 SQL Server，并启用 TCP/IP 协议
+   （SQL Server 配置管理器 → 网络配置 → TCP/IP → 启用 → 重启服务）
+3. 确保 Java 在系统 PATH 中（命令行输入 java -version 能识别）
+
+二、初始化数据库（首次使用）
+---------------------------
+打开命令行，进入 SQL Server 安装目录，执行：
+
+  sqlcmd -S localhost -U sa -P "你的密码" -i init.sql
+
+三、启动系统
+-----------
+方式1 - 双击 run.bat，按提示输入 SQL Server 密码
+方式2 - 命令行运行：
+  java -jar grade-system-1.0.0.jar --spring.datasource.password=你的密码
+
+四、访问
+-----------
+浏览器打开 http://localhost:8088
+
+五、测试账号
+-----------
+管理员  admin     / admin123
+教师    teacher1  / teacher123
+学生    student1  / student123
+
+六、常见问题
+-----------
+Q: 启动报错 "端口被占用"
+A: 修改端口：java -jar grade-system-1.0.0.jar --server.port=9090 --spring.datasource.password=你的密码
+
+Q: 连接数据库失败
+A: 检查 SQL Server 是否开启 TCP/IP，防火墙是否放行 1433 端口

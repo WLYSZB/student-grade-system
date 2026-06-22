@@ -175,6 +175,11 @@ INSERT INTO sys_user (username, password, role, status) VALUES
 ('student1', 'ad6a280417a0f533d8b670c61667e1a0', 'STUDENT', 1);
 GO
 
+-- 关联教师和学生记录
+INSERT INTO teacher (user_id, name, department) VALUES (2, '张老师', '计算机科学系');
+INSERT INTO student (user_id, name, class_name, major, enrollment_year) VALUES (3, '李同学', '软件2101', '软件工程', 2021);
+GO
+
 -- 默认学期
 INSERT INTO semester (name, start_date, end_date) VALUES
 ('2025-2026学年第一学期', '2025-09-01', '2026-01-15'),

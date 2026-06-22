@@ -1,0 +1,11 @@
+[
+  {"studentId":1, "courseId":1, "score":85, "gradePoint":3.5},
+  {"studentId":1, "courseId":2, "score":90, "gradePoint":4.0},
+  {"studentId":1, "courseId":3, "score":78, "gradePoint":3.0},
+  {"studentId":2, "courseId":1, "score":92, "gradePoint":4.0},
+  {"studentId":2, "courseId":2, "score":88, "gradePoint":3.5},
+  {"studentId":2, "courseId":3, "score":65, "gradePoint":1.5},
+  {"studentId":3, "courseId":1, "score":72, "gradePoint":2.5},
+  {"studentId":3, "courseId":2, "score":55, "gradePoint":0},
+  {"studentId":3, "courseId":3, "score":81, "gradePoint":3.0}
+]

@@ -54,6 +54,7 @@
     <div class="layout">
         <ul class="sidebar sidebar-menu">
             <li class="active" onclick="switchTab('user', this)">用户管理</li>
+            <li onclick="switchTab('course', this)">课程管理</li>
             <li onclick="switchTab('notice', this)">通知公告</li>
             <li onclick="switchTab('help', this)">系统帮助</li>
         </ul>
@@ -94,6 +95,35 @@
                     <button class="page-btn" id="userPrevBtn" onclick="loadUsers(currentUserPage-1)">上一页</button>
                     <span class="page-info" id="userPageInfo">第 1 页</span>
                     <button class="page-btn" id="userNextBtn" onclick="loadUsers(currentUserPage+1)">下一页</button>
+                </div>
+            </div>
+
+            <!-- ====== 课程管理 ====== -->
+            <div id="course-section" class="card" style="display:none">
+                <div class="card-header">
+                    <h3>课程管理</h3>
+                    <div>
+                        <button class="btn btn-sm btn-primary" onclick="showCourseModal()">新增课程</button>
+                        <button class="btn btn-sm btn-success" onclick="showCourseImport()">批量导入</button>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:60px">ID</th>
+                            <th>课程名称</th>
+                            <th style="width:80px">学分</th>
+                            <th style="width:80px">教师ID</th>
+                            <th style="width:80px">学期ID</th>
+                            <th style="width:160px">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="courseTableBody"></tbody>
+                </table>
+                <div class="pagination">
+                    <button class="page-btn" id="coursePrevBtn" onclick="loadCourses(currentCoursePage-1)">上一页</button>
+                    <span class="page-info" id="coursePageInfo">第 1 页</span>
+                    <button class="page-btn" id="courseNextBtn" onclick="loadCourses(currentCoursePage+1)">下一页</button>
                 </div>
             </div>
 
@@ -230,6 +260,55 @@
         </div>
     </div>
 
+    <!-- ====== 课程编辑弹窗 ====== -->
+    <div class="modal" id="courseModal">
+        <div class="modal-content">
+            <h3 id="courseModalTitle">新增课程</h3>
+            <div class="form-group">
+                <label>课程名称</label>
+                <input type="text" id="courseFormName" required>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>学分</label>
+                    <input type="number" id="courseFormCredit" step="0.1" min="0" max="10" value="3.0" required>
+                </div>
+                <div class="form-group">
+                    <label>授课教师ID</label>
+                    <input type="number" id="courseFormTeacherId" value="2">
+                </div>
+                <div class="form-group">
+                    <label>所属学期ID</label>
+                    <input type="number" id="courseFormSemesterId" value="1">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-sm btn-secondary" onclick="closeModal('courseModal')">取消</button>
+                <button class="btn btn-sm btn-primary" onclick="saveCourse()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 课程批量导入弹窗 ====== -->
+    <div class="modal" id="courseImportModal">
+        <div class="modal-content">
+            <h3>批量导入课程</h3>
+            <p style="color:#666;font-size:13px;margin-bottom:12px;">
+                CSV 格式：<code>课程名称,学分,教师ID,学期ID</code><br>
+                示例：<code>高等数学,4.0,2,1</code>
+            </p>
+            <div class="import-area" onclick="document.getElementById('courseImportFile').click()">
+                <div id="courseImportFileInfo">点击选择 CSV 文件</div>
+                <input type="file" id="courseImportFile" accept=".csv" onchange="onCourseFileSelected(event)">
+            </div>
+            <div id="courseImportPreview" style="max-height:200px;overflow-y:auto;margin-bottom:12px;"></div>
+            <div class="form-actions">
+                <button class="btn btn-sm btn-secondary" onclick="closeModal('courseImportModal')">取消</button>
+                <button class="btn btn-sm btn-success" id="courseImportSubmitBtn" onclick="doCourseImport()" disabled>开始导入</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ====== 通知编辑弹窗 ====== -->
     <div class="modal" id="noticeModal">
         <div class="modal-content">
@@ -287,6 +366,7 @@
             document.querySelectorAll('.sidebar-menu li').forEach(li => li.classList.remove('active'));
             el.classList.add('active');
             if (tab === 'user') loadUsers();
+            if (tab === 'course') loadCourses();
             if (tab === 'notice') loadNotices();
         }
 
@@ -480,6 +560,140 @@
                 } else {
                     alert('导入失败: ' + result.message);
                 }
+            } catch (e) { alert('网络错误'); }
+        }
+
+        // ====== 课程管理 ======
+        const BASE_COURSE = '/api/admin/courses';
+        let currentCoursePage = 1;
+        let editingCourseId = null;
+        let courseImportFileData = null;
+
+        async function loadCourses(page) {
+            if (page) currentCoursePage = page;
+            try {
+                const url = `${BASE_COURSE}?pageNum=${currentCoursePage}&pageSize=10`;
+                const res = await fetch(url);
+                const result = await res.json();
+                if (result.code !== 200) { alert('加载失败: ' + result.message); return; }
+                const data = result.data;
+                const tbody = document.getElementById('courseTableBody');
+                if (!data.records || data.records.length === 0) {
+                    tbody.innerHTML = '<tr class="empty-row"><td colspan="6">暂无课程数据，请先导入</td></tr>';
+                } else {
+                    tbody.innerHTML = data.records.map(c => `
+                        <tr>
+                            <td>${c.id}</td>
+                            <td>${c.name}</td>
+                            <td>${c.credit}</td>
+                            <td>${c.teacherId || '-'}</td>
+                            <td>${c.semesterId || '-'}</td>
+                            <td>
+                                <button class="btn btn-xs btn-primary" onclick="editCourse(${c.id},'${c.name.replace(/'/g,"\\'")}',${c.credit},${c.teacherId||2},${c.semesterId||1})">编辑</button>
+                                <button class="btn btn-xs btn-danger" onclick="deleteCourse(${c.id})">删除</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+                document.getElementById('coursePageInfo').textContent = `第 ${data.current} 页 / 共 ${data.pages} 页（${data.total} 条）`;
+                document.getElementById('coursePrevBtn').disabled = data.current <= 1;
+                document.getElementById('courseNextBtn').disabled = data.current >= data.pages;
+            } catch (e) { console.error(e); alert('网络错误'); }
+        }
+
+        function showCourseModal() {
+            editingCourseId = null;
+            document.getElementById('courseModalTitle').textContent = '新增课程';
+            document.getElementById('courseFormName').value = '';
+            document.getElementById('courseFormCredit').value = '3.0';
+            document.getElementById('courseFormTeacherId').value = '2';
+            document.getElementById('courseFormSemesterId').value = '1';
+            openModal('courseModal');
+        }
+
+        function editCourse(id, name, credit, teacherId, semesterId) {
+            editingCourseId = id;
+            document.getElementById('courseModalTitle').textContent = '编辑课程';
+            document.getElementById('courseFormName').value = name;
+            document.getElementById('courseFormCredit').value = credit;
+            document.getElementById('courseFormTeacherId').value = teacherId;
+            document.getElementById('courseFormSemesterId').value = semesterId;
+            openModal('courseModal');
+        }
+
+        async function saveCourse() {
+            const name = document.getElementById('courseFormName').value.trim();
+            if (!name) { alert('请输入课程名称'); return; }
+            const body = {
+                name,
+                credit: parseFloat(document.getElementById('courseFormCredit').value) || 3.0,
+                teacherId: parseInt(document.getElementById('courseFormTeacherId').value) || 2,
+                semesterId: parseInt(document.getElementById('courseFormSemesterId').value) || 1
+            };
+            try {
+                const url = editingCourseId ? `${BASE_COURSE}/${editingCourseId}` : BASE_COURSE;
+                const method = editingCourseId ? 'PUT' : 'POST';
+                const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                const result = await res.json();
+                if (result.code === 200) {
+                    closeModal('courseModal');
+                    loadCourses();
+                } else { alert(result.message); }
+            } catch (e) { alert('网络错误'); }
+        }
+
+        async function deleteCourse(id) {
+            if (!confirm('确认删除该课程？')) return;
+            try {
+                const res = await fetch(`${BASE_COURSE}/${id}`, { method: 'DELETE' });
+                const result = await res.json();
+                if (result.code === 200) loadCourses();
+                else alert(result.message);
+            } catch (e) { alert('网络错误'); }
+        }
+
+        function showCourseImport() {
+            courseImportFileData = null;
+            document.getElementById('courseImportFileInfo').textContent = '点击选择 CSV 文件';
+            document.getElementById('courseImportPreview').innerHTML = '';
+            document.getElementById('courseImportSubmitBtn').disabled = true;
+            document.getElementById('courseImportFile').value = '';
+            openModal('courseImportModal');
+        }
+
+        function onCourseFileSelected(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById('courseImportFileInfo').textContent = '已选择: ' + file.name;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const text = ev.target.result;
+                const lines = text.split('\n').filter(l => l.trim());
+                if (lines.length < 2) { alert('CSV 至少包含标题行和一行数据'); return; }
+                const preview = document.getElementById('courseImportPreview');
+                preview.innerHTML = '<table><thead><tr><th>名称</th><th>学分</th><th>教师ID</th><th>学期ID</th></tr></thead><tbody>' +
+                    lines.slice(1).map(line => {
+                        const cols = line.split(',').map(c => c.trim());
+                        return '<tr><td>' + cols.slice(0,4).join('</td><td>') + '</td></tr>';
+                    }).join('') + '</tbody></table>';
+                courseImportFileData = file;
+                document.getElementById('courseImportSubmitBtn').disabled = false;
+            };
+            reader.readAsText(file);
+        }
+
+        async function doCourseImport() {
+            if (!courseImportFileData) return;
+            const formData = new FormData();
+            formData.append('file', courseImportFileData);
+            try {
+                const res = await fetch(`${BASE_COURSE}/import`, { method: 'POST', body: formData });
+                const result = await res.json();
+                if (result.code === 200) {
+                    alert(result.data);
+                    closeModal('courseImportModal');
+                    loadCourses();
+                } else { alert('导入失败: ' + result.message); }
             } catch (e) { alert('网络错误'); }
         }
 

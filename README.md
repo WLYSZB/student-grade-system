@@ -1,4 +1,4 @@
-# 学生成绩管理系统
+# 学生成绩管理系统 v1.0
 
 ## 技术栈
 - 后端：Spring Boot 3.5.0 + MyBatis-Plus 3.5.7
@@ -8,31 +8,36 @@
 
 ## 快速启动
 
-### 1. 创建数据库
-在 SQL Server Management Studio (SSMS) 或命令行中执行：
+### 1. 环境准备
+- JDK 17+
+- Maven 3.9+
+- SQL Server（需启用 TCP/IP 协议）
+
+### 2. 创建数据库
 ```bash
 sqlcmd -S localhost -U sa -P "你的密码" -i src/main/resources/db/init.sql
 ```
 
-### 2. 修改配置
-编辑 `src/main/resources/application.yml`，修改数据库密码：
+### 3. 修改配置
+编辑 `src/main/resources/application.yml`，改数据库密码：
 ```yaml
-spring:
-  datasource:
-    url: jdbc:sqlserver://localhost:1433;databaseName=grade_system;encrypt=false;trustServerCertificate=true
-    username: sa
-    password: 你的SQL Server密码
+password: your_password  # 改为你的 SQL Server 密码
 ```
 
-### 3. 编译运行
+### 4. 启动
 ```bash
 mvn spring-boot:run
 ```
+或直接运行 JAR：
+```bash
+java -jar grade-system-1.0.0.jar --spring.datasource.password=你的密码
+```
 
-### 4. 访问系统
+### 5. 访问
 浏览器打开 `http://localhost:8088`
 
-### 测试账号
+## 测试账号
+
 | 角色 | 用户名 | 密码 |
 |------|--------|------|
 | 管理员 | admin | admin123 |
@@ -41,106 +46,29 @@ mvn spring-boot:run
 
 ## 项目结构
 ```
-├── pom.xml                              # Maven配置
+├── pom.xml
 ├── src/main/java/com/example/gradesystem/
 │   ├── GradeSystemApplication.java      # 启动类
-│   ├── config/
-│   │   ├── WebMvcConfig.java            # 拦截器/跨域/静态资源
-│   │   └── MyBatisPlusConfig.java       # 分页/自动填充
-│   ├── common/
-│   │   ├── Result.java                  # 统一返回结果
-│   │   ├── PageResult.java              # 分页结果
-│   │   ├── ErrorCode.java               # 错误码枚举
-│   │   ├── BusinessException.java       # 业务异常
-│   │   ├── GlobalExceptionHandler.java  # 全局异常处理
-│   │   ├── LoginInterceptor.java        # 登录拦截器
-│   │   └── RoleInterceptor.java         # 角色权限拦截器
+│   ├── config/                          # 拦截器/跨域/分页
+│   ├── common/                          # Result/ErrorCode/异常处理
 │   ├── entity/                          # 实体类（8个）
-│   │   ├── User.java / Teacher.java / Student.java
-│   │   ├── Course.java / Semester.java
-│   │   ├── Grade.java / GradeModifyLog.java / Notice.java
+│   ├── dto/                             # 请求体
+│   ├── mapper/                          # MyBatis Mapper
 │   ├── controller/
-│   │   ├── auth/
-│   │   │   └── AuthController.java          # 认证接口（成员2 ✅）
-│   │   ├── teacher/
-│   │   │   ├── GradeController.java         # 成绩CRUD/统计/排名API（成员3 ✅）
-│   │   │   └── TeacherController.java       # 教师管理（成员5 ✅）
-│   │   ├── student/
-│   │   │   └── StudentController.java       # 学生端API（成员4 🔲）
-│   │   ├── user/
-│   │   │   └── UserController.java          # 用户管理API（成员5 ✅）
-│   │   └── NoticeController.java            # 通知公告API（成员5 ✅）
-│   ├── service/
-│   │   ├── auth/
-│   │   │   └── AuthService.java             # 认证业务逻辑（成员2 ✅）
-│   │   ├── teacher/
-│   │   │   ├── GradeService.java            # 成绩录入/修改/统计/排名（成员3 ✅）
-│   │   │   └── TeacherService.java          # 教师管理（成员5 ✅）
-│   │   ├── student/
-│   │   │   └── StudentService.java          # 学生端业务（成员4 ✅）
-│   │   ├── user/
-│   │   │   └── UserService.java             # 用户管理（成员5 ✅）
-│   │   ├── NoticeService.java               # 通知公告（成员5 ✅）
-│   │   └── student/
-│   │       └── StudentGradeService.java     # 学生端成绩/分析/通知（成员4 ✅）
-│   ├── mapper/
-│   │   ├── UserMapper.java                  # 用户数据访问（成员2 ✅）
-│   │   ├── GradeMapper.java                 # 成绩数据访问（成员3 ✅）
-│   │   ├── GradeModifyLogMapper.java        # 修改日志数据访问（成员3 ✅）
-│   │   ├── StudentMapper.java               # 学生数据访问（成员3 ✅）
-│   │   ├── CourseMapper.java                # 课程数据访问（成员3 ✅）
-│   │   ├── TeacherMapper.java               # 教师数据访问（成员3 ✅）
-│   │   ├── NoticeMapper.java                # 通知数据访问（成员3 ✅）
-│   │   └── SemesterMapper.java              # 学期数据访问（成员3 ✅）
-│   ├── dto/
-│   │   ├── LoginRequest.java                # 登录请求体（成员2 ✅）
-│   │   ├── RegisterRequest.java             # 注册请求体（成员2 ✅）
-│   │   ├── ChangePasswordRequest.java       # 修改密码请求体（成员2 ✅）
-│   │   ├── GradeRequest.java                # 成绩导入请求体（成员3 ✅）
-│   │   ├── NoticeRequest.java               # 通知公告请求体（成员5 ✅）
-│   │   ├── StudentRequest.java              # 学生管理请求体（成员5 ✅）
-│   │   ├── TeacherRequest.java              # 教师管理请求体（成员5 ✅）
-│   │   └── UserRequest.java                 # 用户管理请求体（成员5 ✅）
-│   └── util/
-│       ├── MD5Util.java                     # MD5加密（成员2 ✅）
-│       ├── ExcelUtil.java                   # Excel导入导出
-│       └── DateUtil.java                    # 日期工具
+│   │   ├── auth/AuthController.java     # 登录认证
+│   │   ├── teacher/GradeController.java # 成绩管理
+│   │   ├── admin/CourseController.java  # 课程管理
+│   │   └── user/UserController.java     # 用户管理
+│   ├── service/                         # 业务逻辑层
+│   └── util/                            # MD5/Excel/Date
 ├── src/main/resources/
-│   ├── application.yml                  # 应用配置
-│   ├── db/init.sql                      # 数据库初始化脚本
-│   └── static/
-│       ├── index.html                   # 入口页面
-│       ├── css/style.css                # 全局样式
-│       └── pages/
-│           ├── login.html               # 登录页（成员2 ✅）
-│           ├── register.html            # 注册页（成员2 ✅）
-│           ├── admin.html               # 管理员端（成员5 ✅）
-│           ├── teacher.html             # 教师端（成员3 ✅ 成绩录入/修改/统计/分析）
-│           └── student.html             # 学生端（成员4 🔲）
-
-## 开发进度
-
-| 模块 | 成员 | 状态 |
-|------|:----:|:----:|
-| 项目骨架 + 实体类 + 公共模块 | 成员1 | ✅ |
-| 登录认证（AuthController/AuthService） | 成员2 | ✅ |
-| 教师端（成绩录入/修改/统计/分析） | **成员3** | **✅ 已完成** |
-| 学生端（成绩查询/分析/通知） | 成员4 | 🔲 |
-| 管理员端（用户管理/通知/帮助） | 成员5 | ✅ |
-| 测试 + 文档整合 + 答辩 | 成员6 | 🔲 |
-
-## API 规范
-
-### 统一返回格式
-```json
-{
-    "code": 200,
-    "message": "success",
-    "data": {}
-}
+│   ├── application.yml
+│   ├── db/init.sql                      # 数据库初始化
+│   └── static/                          # 前端页面
+└── test_*.csv / test_*.json             # 测试数据
 ```
 
-### 已实现接口（成员2）
+## API 接口
 
 | 接口 | 方法 | 需登录 | 说明 |
 |------|:----:|:------:|------|
@@ -148,68 +76,36 @@ mvn spring-boot:run
 | `/api/auth/register` | POST | 否 | 用户注册 |
 | `/api/auth/me` | GET | 是 | 获取当前用户 |
 | `/api/auth/change-password` | PUT | 是 | 修改密码 |
-| `/api/auth/reset-password` | POST | 否 | 忘记密码重置 |
+| `/api/auth/reset-password` | POST | 否 | 重置密码 |
 | `/api/auth/logout` | POST | 是 | 退出登录 |
-
-### 已实现接口（成员3 - 教师端）
-
-| 接口 | 方法 | 需登录 | 说明 |
-|------|:----:|:------:|------|
-| `/api/teacher/grades/list` | GET | 是 | 分页查询成绩（支持按学生/课程筛选） |
-| `/api/teacher/grades/{id}` | GET | 是 | 获取成绩详情 |
-| `/api/teacher/grades` | POST | 是 | 单条录入成绩（含校验+自动算绩点） |
-| `/api/teacher/grades/{id}` | PUT | 是 | 修改成绩（自动记录修改日志） |
-| `/api/teacher/grades/{id}` | DELETE | 是 | 删除成绩 |
+| `/api/teacher/grades/list` | GET | 是 | 成绩列表 |
+| `/api/teacher/grades` | POST | 是 | 录入成绩 |
 | `/api/teacher/grades/batch` | POST | 是 | 批量导入成绩 |
-| `/api/teacher/grades/statistics` | GET | 是 | 成绩统计（平均分/最高/最低/分布） |
-| `/api/teacher/grades/ranking` | GET | 是 | 成绩排名（按成绩降序） |
-| `/api/teacher/grades/students` | GET | 是 | 获取所有学生列表 |
-| `/api/teacher/grades/courses` | GET | 是 | 获取所有课程列表 |
+| `/api/teacher/grades/statistics` | GET | 是 | 成绩统计 |
+| `/api/teacher/grades/ranking` | GET | 是 | 成绩排名 |
+| `/api/teacher/grades/students` | GET | 是 | 学生下拉 |
+| `/api/teacher/grades/courses` | GET | 是 | 课程下拉 |
+| `/api/admin/courses` | GET | 是 | 课程管理 |
+| `/api/admin/courses/import` | POST | 是 | CSV批量导入课程 |
+| `/api/admin/users` | GET | 是 | 用户管理 |
 
-### 已实现接口（成员5 - 管理员端）
+## 统一返回格式
+```json
+{"code": 200, "message": "success", "data": {}}
+```
 
-| 接口 | 方法 | 需登录 | 说明 |
-|------|:----:|:------:|------|
-| `/api/admin/users` | GET | 是 | 分页查询用户列表（支持角色筛选） |
-| `/api/admin/users/{id}` | GET | 是 | 获取用户详情 |
-| `/api/admin/users` | POST | 是 | 新增用户 |
-| `/api/admin/users/{id}` | PUT | 是 | 编辑用户 |
-| `/api/admin/users/{id}` | DELETE | 是 | 删除用户 |
-| `/api/admin/users/{id}/status` | PUT | 是 | 启用/禁用用户 |
-| `/api/admin/users/{id}/reset-password` | PUT | 是 | 重置密码为 123456 |
-| `/api/admin/teachers` | GET | 是 | 分页查询教师列表 |
-| `/api/admin/teachers/{id}` | GET | 是 | 获取教师详情 |
-| `/api/admin/teachers` | POST | 是 | 新增教师（自动创建用户账号） |
-| `/api/admin/teachers/{id}` | PUT | 是 | 编辑教师 |
-| `/api/admin/teachers/{id}` | DELETE | 是 | 删除教师 |
-| `/api/admin/students` | GET | 是 | 分页查询学生列表 |
-| `/api/admin/students/{id}` | GET | 是 | 获取学生详情 |
-| `/api/admin/students` | POST | 是 | 新增学生（自动创建用户账号） |
-| `/api/admin/students/{id}` | PUT | 是 | 编辑学生 |
-| `/api/admin/students/{id}` | DELETE | 是 | 删除学生 |
-| `/api/admin/students/import` | POST | 是 | CSV 批量导入学生 |
-| `/api/admin/notices` | GET | 是 | 分页查询公告列表 |
-| `/api/admin/notices/{id}` | GET | 是 | 获取公告详情 |
-| `/api/admin/notices` | POST | 是 | 创建公告 |
-| `/api/admin/notices/{id}` | PUT | 是 | 编辑公告 |
-| `/api/admin/notices/{id}` | DELETE | 是 | 删除公告 |
-| `/api/admin/notices/{id}/publish` | PUT | 是 | 发布公告 |
-| `/api/admin/notices/{id}/retract` | PUT | 是 | 撤回公告 |
-
-### 错误码
+## 错误码
 | 错误码 | 说明 |
 |--------|------|
 | 200 | 成功 |
 | 400 | 参数错误 |
 | 401 | 未登录 |
 | 403 | 无权限 |
-| 1001 | 用户不存在 |
-| 1002 | 用户名已存在 |
-| 1003 | 密码错误 |
-| 1004 | 账号已禁用 |
-| 1005 | 学生不存在 |
-| 1006 | 课程不存在 |
-| 2001 | 成绩记录不存在 |
-| 2002 | 该课程成绩已录入 |
-| 2003 | 成绩超出有效范围 |
+| 1001-1006 | 用户/课程/学生相关 |
+| 2001-2003 | 成绩相关 |
 | 500 | 系统错误 |
+
+## 测试数据文件
+- `test_courses.csv` — 10门课程（管理员端 → 课程管理 → 批量导入）
+- `test_students.csv` — 10名学生（管理员端 → 用户管理 → 批量导入）
+- `test_grades.json` — 9条成绩（教师端 → 成绩管理 → 批量导入）
