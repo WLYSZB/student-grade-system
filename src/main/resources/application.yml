@@ -3,10 +3,10 @@ server:
 
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/grade_system?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: root
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:sqlserver://localhost:1433;databaseName=grade_system;encrypt=false;trustServerCertificate=true
+    username: sa
+    password: your_password
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
 
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss

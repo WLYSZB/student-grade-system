@@ -3,24 +3,28 @@
 ## 技术栈
 - 后端：Spring Boot 3.3.5 + MyBatis-Plus 3.5.7
 - 前端：HTML5 + CSS3 + JavaScript（原生）
-- 数据库：MySQL 8.0
+- 数据库：SQL Server
 - 构建工具：Maven 3.9+
 
 ## 快速启动
 
 ### 1. 创建数据库
-```bash
-mysql -u root -p < src/main/resources/db/init.sql
+在 SQL Server Management Studio (SSMS) 中执行：
+```sql
+CREATE DATABASE grade_system;
+GO
+USE grade_system;
+-- 然后执行 src/main/resources/db/init.sql 中的全部SQL
 ```
 
 ### 2. 修改配置
-编辑 `src/main/resources/application.yml`，修改数据库连接信息：
+编辑 `src/main/resources/application.yml`，修改数据库密码：
 ```yaml
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/grade_system?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: root  # 改为你的MySQL密码
+    url: jdbc:sqlserver://localhost:1433;databaseName=grade_system;encrypt=false;trustServerCertificate=true
+    username: sa
+    password: your_password  # 改为你的SQL Server密码
 ```
 
 ### 3. 编译运行
