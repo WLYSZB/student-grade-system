@@ -165,9 +165,14 @@ GO
 -- 初始数据
 -- ============================================
 
--- 默认管理员账号（密码: admin123，MD5加密）
+-- 默认测试账号（密码均使用 MD5 加密）
+-- admin     / admin123    → e64b78fc3bc91bcbc7dc232ba8ec59e0
+-- teacher1  / teacher123  → a426dcf72ba25d046591f81a5495eab7
+-- student1  / student123  → ad6a280417a0f533d8b670c61667e1a0
 INSERT INTO sys_user (username, password, role, status) VALUES
-('admin', 'e64b78fc3bc91bcbc7dc232ba8ec59e0', 'ADMIN', 1);
+('admin',    '0192023a7bbd73250516f069df18b500', 'ADMIN',   1),
+('teacher1', 'a426dcf72ba25d046591f81a5495eab7', 'TEACHER', 1),
+('student1', 'ad6a280417a0f533d8b670c61667e1a0', 'STUDENT', 1);
 GO
 
 -- 默认学期

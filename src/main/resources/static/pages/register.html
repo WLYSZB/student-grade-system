@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生成绩管理系统 - 注册</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box" style="max-width:440px;">
+            <h2>注册新账号</h2>
+            <div id="message"></div>
+
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="username">用户名 <small>(3-20位字母、数字或下划线)</small></label>
+                    <input type="text" id="username" name="username" placeholder="请输入用户名" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">密码 <small>(6-32位)</small></label>
+                    <input type="password" id="password" name="password" placeholder="请输入密码" required>
+                </div>
+                <div class="form-group">
+                    <label for="role">角色</label>
+                    <select id="role" name="role" required>
+                        <option value="">请选择角色</option>
+                        <option value="STUDENT">学生</option>
+                        <option value="TEACHER">教师</option>
+                    </select>
+                    <small style="color:#999;">管理员账号由系统管理员创建</small>
+                </div>
+                <button type="submit" class="btn btn-primary">注 册</button>
+            </form>
+
+            <div style="text-align:center; margin-top:16px;">
+                <a href="/pages/login.html" style="color:#4a90d9; text-decoration:none; font-size:14px;">← 返回登录</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+
+            // 前端校验
+            if (!/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+                showMessage('用户名只能包含字母、数字和下划线，长度3-20位', 'error');
+                return;
+            }
+            if (password.length < 6 || password.length > 32) {
+                showMessage('密码长度需在6-32位之间', 'error');
+                return;
+            }
+            if (!role) {
+                showMessage('请选择角色', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, role })
+                });
+                const result = await response.json();
+
+                if (result.code === 200) {
+                    showMessage('注册成功！即将跳转到登录页...', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/pages/login.html';
+                    }, 1500);
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (err) {
+                showMessage('网络错误，请检查服务是否启动', 'error');
+            }
+        });
+
+        function showMessage(msg, type) {
+            const div = document.getElementById('message');
+            div.className = 'message message-' + type;
+            div.textContent = msg;
+            if (type === 'success') {
+                setTimeout(() => div.textContent = '', 5000);
+            } else {
+                setTimeout(() => div.textContent = '', 4000);
+            }
+        }
+    </script>
+</body>
+</html>

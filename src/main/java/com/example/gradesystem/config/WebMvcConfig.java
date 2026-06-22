@@ -25,12 +25,20 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/api/auth/login",
                         "/api/auth/register",
+                        "/api/auth/reset-password",
                         "/api/notice/list",
                         "/api/notice/detail/**"
                 );
 
         registry.addInterceptor(roleInterceptor)
-                .addPathPatterns("/api/**");
+                .addPathPatterns("/api/**")
+                .excludePathPatterns(
+                        "/api/auth/login",
+                        "/api/auth/register",
+                        "/api/auth/reset-password",
+                        "/api/notice/list",
+                        "/api/notice/detail/**"
+                );
     }
 
     @Override

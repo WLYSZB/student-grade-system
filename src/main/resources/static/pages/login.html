@@ -5,12 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>学生成绩管理系统 - 登录</title>
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .links { text-align: center; margin-top: 16px; }
+        .links a { color: #4a90d9; text-decoration: none; font-size: 14px; }
+        .links a:hover { text-decoration: underline; }
+        .links span { color: #999; margin: 0 8px; }
+        .reset-box { display: none; margin-top: 12px; padding: 12px; background: #f5f7fa; border-radius: 6px; }
+        .reset-box.show { display: block; }
+    </style>
 </head>
 <body>
     <div class="login-container">
         <div class="login-box">
             <h2>学生成绩管理系统</h2>
             <div id="message"></div>
+
+            <!-- 登录表单 -->
             <form id="loginForm">
                 <div class="form-group">
                     <label for="username">用户名</label>
@@ -23,6 +33,7 @@
                 <div class="form-group">
                     <label for="role">角色</label>
                     <select id="role" name="role">
+                        <option value="">不指定</option>
                         <option value="ADMIN">管理员</option>
                         <option value="TEACHER">教师</option>
                         <option value="STUDENT">学生</option>
@@ -30,34 +41,112 @@
                 </div>
                 <button type="submit" class="btn btn-primary">登 录</button>
             </form>
+
+            <div class="links">
+                <a href="#" id="showRegister">注册新账号</a>
+                <span>|</span>
+                <a href="#" id="showReset">忘记密码</a>
+            </div>
+
+            <!-- 重置密码表单 -->
+            <div class="reset-box" id="resetBox">
+                <h4 style="margin-top:0;">重置密码</h4>
+                <div class="form-group">
+                    <label for="resetUsername">用户名</label>
+                    <input type="text" id="resetUsername" placeholder="请输入用户名">
+                </div>
+                <div class="form-group">
+                    <label for="resetPassword">新密码</label>
+                    <input type="password" id="resetPassword" placeholder="请输入新密码（6-32位）">
+                </div>
+                <button type="button" class="btn btn-primary" id="resetBtn">确认重置</button>
+                <button type="button" class="btn btn-default" id="cancelReset" style="margin-top:8px;">取消</button>
+            </div>
         </div>
     </div>
 
     <script>
+        // ========== 登录 ==========
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const username = document.getElementById('username').value;
+            const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const role = document.getElementById('role').value;
 
+            if (!username || !password) {
+                showMessage('请输入用户名和密码', 'error');
+                return;
+            }
+
             try {
+                const body = { username, password };
+                if (role) body.role = role;
+
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password, role })
+                    body: JSON.stringify(body)
                 });
                 const result = await response.json();
 
                 if (result.code === 200) {
+                    // 将用户信息存到 sessionStorage，前端页面跳转时使用
                     sessionStorage.setItem('currentUser', JSON.stringify(result.data));
+                    showMessage('登录成功，正在跳转...', 'success');
                     const userRole = result.data.role;
-                    if (userRole === 'ADMIN') {
-                        window.location.href = '/pages/admin.html';
-                    } else if (userRole === 'TEACHER') {
-                        window.location.href = '/pages/teacher.html';
-                    } else {
-                        window.location.href = '/pages/student.html';
-                    }
+                    setTimeout(() => {
+                        if (userRole === 'ADMIN') {
+                            window.location.href = '/pages/admin.html';
+                        } else if (userRole === 'TEACHER') {
+                            window.location.href = '/pages/teacher.html';
+                        } else {
+                            window.location.href = '/pages/student.html';
+                        }
+                    }, 500);
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (err) {
+                showMessage('网络错误，请检查服务是否启动', 'error');
+            }
+        });
+
+        // ========== 重置密码 ==========
+        document.getElementById('showReset').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('resetBox').classList.toggle('show');
+        });
+
+        document.getElementById('cancelReset').addEventListener('click', function() {
+            document.getElementById('resetBox').classList.remove('show');
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', async function() {
+            const username = document.getElementById('resetUsername').value.trim();
+            const newPassword = document.getElementById('resetPassword').value;
+
+            if (!username || !newPassword) {
+                showMessage('请填写用户名和新密码', 'error');
+                return;
+            }
+            if (newPassword.length < 6) {
+                showMessage('新密码长度至少6位', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/auth/reset-password', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, newPassword })
+                });
+                const result = await response.json();
+
+                if (result.code === 200) {
+                    showMessage('密码重置成功，请使用新密码登录', 'success');
+                    document.getElementById('resetBox').classList.remove('show');
+                    document.getElementById('resetUsername').value = '';
+                    document.getElementById('resetPassword').value = '';
                 } else {
                     showMessage(result.message, 'error');
                 }
@@ -66,11 +155,22 @@
             }
         });
 
+        // ========== 注册跳转 ==========
+        document.getElementById('showRegister').addEventListener('click', function(e) {
+            e.preventDefault();
+            window.location.href = '/pages/register.html';
+        });
+
+        // ========== 消息提示 ==========
         function showMessage(msg, type) {
             const div = document.getElementById('message');
             div.className = 'message message-' + type;
             div.textContent = msg;
-            setTimeout(() => div.textContent = '', 3000);
+            if (type === 'success') {
+                setTimeout(() => div.textContent = '', 5000);
+            } else {
+                setTimeout(() => div.textContent = '', 4000);
+            }
         }
     </script>
 </body>
