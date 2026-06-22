@@ -3,7 +3,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:sqlserver://localhost:1433;databaseName=grade_system;encrypt=false;trustServerCertificate=true
+    url: jdbc:sqlserver://localhost:1433;databaseName=grade_system;encrypt=false;trustServerCertificate=true;characterEncoding=UTF-8
     username: sa
     password: your_password
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver

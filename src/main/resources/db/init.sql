@@ -4,7 +4,7 @@
 
 IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'grade_system')
 BEGIN
-    CREATE DATABASE grade_system;
+    CREATE DATABASE grade_system COLLATE Chinese_PRC_CI_AS;
 END
 GO
 
@@ -176,12 +176,12 @@ INSERT INTO sys_user (username, password, role, status) VALUES
 GO
 
 -- 关联教师和学生记录
-INSERT INTO teacher (user_id, name, department) VALUES (2, '张老师', '计算机科学系');
-INSERT INTO student (user_id, name, class_name, major, enrollment_year) VALUES (3, '李同学', '软件2101', '软件工程', 2021);
+INSERT INTO teacher (user_id, name, department) VALUES (2, N'张老师', N'计算机科学系');
+INSERT INTO student (user_id, name, class_name, major, enrollment_year) VALUES (3, N'李同学', N'软件2101', N'软件工程', 2021);
 GO
 
 -- 默认学期
 INSERT INTO semester (name, start_date, end_date) VALUES
-('2025-2026学年第一学期', '2025-09-01', '2026-01-15'),
-('2025-2026学年第二学期', '2026-02-20', '2026-07-10');
+(N'2025-2026学年第一学期', '2025-09-01', '2026-01-15'),
+(N'2025-2026学年第二学期', '2026-02-20', '2026-07-10');
 GO
