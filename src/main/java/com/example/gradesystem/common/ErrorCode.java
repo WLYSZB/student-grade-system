@@ -11,6 +11,8 @@ public enum ErrorCode {
     USERNAME_EXISTS(1002, "用户名已存在"),
     PASSWORD_ERROR(1003, "密码错误"),
     ACCOUNT_DISABLED(1004, "账号已禁用"),
+    STUDENT_NOT_FOUND(1005, "学生不存在"),
+    COURSE_NOT_FOUND(1006, "课程不存在"),
     SCORE_NOT_FOUND(2001, "成绩记录不存在"),
     SCORE_DUPLICATE(2002, "该课程成绩已录入"),
     SCORE_OUT_RANGE(2003, "成绩超出有效范围"),

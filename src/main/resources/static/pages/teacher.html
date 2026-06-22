@@ -5,6 +5,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>教师端 - 学生成绩管理系统</title>
     <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        .modal { width: 560px; }
+        .stats-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: #f9f9f9; border-radius: 8px; padding: 20px; text-align: center; }
+        .stat-card .num { font-size: 32px; font-weight: bold; color: #667eea; }
+        .stat-card .label { font-size: 13px; color: #999; margin-top: 4px; }
+        .chart-box { max-width: 500px; margin: 0 auto 24px; }
+        .rank-list { list-style: none; padding: 0; }
+        .rank-list li { display: flex; align-items: center; padding: 10px 14px; border-bottom: 1px solid #f0f0f0; }
+        .rank-list li:first-child .rank-badge { background: #ffd700; color: #fff; }
+        .rank-list li:nth-child(2) .rank-badge { background: #c0c0c0; color: #fff; }
+        .rank-list li:nth-child(3) .rank-badge { background: #cd7f32; color: #fff; }
+        .rank-badge { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; background: #e8e8e8; margin-right: 12px; font-size: 13px; }
+        .filter-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+        .filter-bar select, .filter-bar input { padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
+        .file-preview { max-height: 300px; overflow-y: auto; border: 1px solid #eee; border-radius: 4px; margin: 10px 0; }
+        .file-preview table th { font-size: 12px; padding: 6px 8px; }
+        .file-preview table td { font-size: 12px; padding: 6px 8px; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+        .badge-success { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+        .badge-error { background: #fff2f0; color: #ff4d4f; border: 1px solid #ffccc7; }
+        .badge-warning { background: #fffbe6; color: #faad14; border: 1px solid #ffe58f; }
+        .inline-flex { display: inline-flex; gap: 6px; align-items: center; }
+        .text-right { text-align: right; }
+        .mt-16 { margin-top: 16px; }
+        .mb-8 { margin-bottom: 8px; }
+        .w-full { width: 100%; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .analysis-table { width: 100%; }
+        .analysis-table td { padding: 8px 12px; }
+        .btn-default { background: #f5f5f5; color: #333; border: 1px solid #ddd; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .btn-default:hover { background: #e8e8e8; }
+        .btn-warning { background: #faad14; color: #fff; }
+        .btn-warning:hover { background: #d99a0b; }
+        .error-log { background: #fff2f0; border: 1px solid #ffccc7; border-radius: 4px; padding: 10px 14px; white-space: pre-wrap; font-size: 13px; color: #ff4d4f; margin-top: 10px; max-height: 200px; overflow-y: auto; }
+        .tab-bar { display: flex; gap: 2px; margin-bottom: 16px; }
+        .tab-bar button { padding: 8px 20px; border: none; background: #f5f5f5; cursor: pointer; border-radius: 4px 4px 0 0; font-size: 14px; }
+        .tab-bar button.active { background: #667eea; color: #fff; }
+        .delete-btn { color: #ff4d4f; cursor: pointer; background: none; border: none; font-size: 13px; }
+        .delete-btn:hover { text-decoration: underline; }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -19,83 +61,615 @@
             <li class="active" onclick="showSection('record')">成绩录入</li>
             <li onclick="showSection('modify')">成绩修改</li>
             <li onclick="showSection('stats')">成绩统计</li>
+            <li onclick="showSection('analysis')">成绩分析</li>
         </ul>
         <div class="content">
+
+            <!-- ===================== 成绩录入 ===================== -->
             <div id="record-section" class="card">
                 <div class="card-header">
                     <h3>成绩录入</h3>
                     <div>
-                        <button class="btn btn-sm btn-primary" onclick="showSingleRecord()">单条录入</button>
-                        <button class="btn btn-sm btn-success" onclick="showBatchImport()">批量导入</button>
+                        <button class="btn btn-sm btn-primary" onclick="showSingleRecord()">+ 单条录入</button>
+                        <button class="btn btn-sm btn-success" onclick="showBatchImport()">📤 批量导入</button>
                     </div>
                 </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>学号</th>
-                            <th>学生姓名</th>
-                            <th>课程</th>
-                            <th>成绩</th>
-                            <th>录入时间</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="gradeTableBody"></tbody>
-                </table>
+                <div class="filter-bar">
+                    <label>课程筛选：</label>
+                    <select id="recordCourseFilter" onchange="loadGrades()"><option value="">全部课程</option></select>
+                    <span style="margin-left:auto;font-size:13px;color:#999;" id="gradeTotalInfo"></span>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>学号</th>
+                                <th>学生姓名</th>
+                                <th>课程</th>
+                                <th>成绩</th>
+                                <th>绩点</th>
+                                <th>录入时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gradeTableBody"></tbody>
+                    </table>
+                </div>
+                <div class="pagination" id="gradePagination"></div>
             </div>
+
+            <!-- ===================== 成绩修改 ===================== -->
             <div id="modify-section" class="card" style="display:none">
                 <div class="card-header">
                     <h3>成绩修改</h3>
+                    <button class="btn btn-sm btn-warning" onclick="initModify()">✏️ 新建修改申请</button>
                 </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>学生</th>
-                            <th>课程</th>
-                            <th>原成绩</th>
-                            <th>新成绩</th>
-                            <th>修改原因</th>
-                            <th>状态</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="modifyTableBody"></tbody>
-                </table>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>学生</th>
+                                <th>课程</th>
+                                <th>原成绩</th>
+                                <th>新成绩</th>
+                                <th>修改原因</th>
+                                <th>状态</th>
+                                <th>申请时间</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modifyTableBody"><tr><td colspan="7" style="text-align:center;color:#bbb;">暂无修改记录</td></tr></tbody>
+                    </table>
+                </div>
             </div>
+
+            <!-- ===================== 成绩统计 ===================== -->
             <div id="stats-section" class="card" style="display:none">
-                <div class="card-header">
-                    <h3>成绩统计</h3>
+                <div class="card-header"><h3>成绩统计</h3></div>
+                <div class="filter-bar">
+                    <label>选择课程：</label>
+                    <select id="statsCourseSelect" style="min-width:200px;" onchange="loadStatistics()"><option value="">全部课程</option></select>
                 </div>
-                <div style="padding: 20px; color: #666;">
-                    <p>班级平均分、最高/低分、分数段分布、排名表等功能</p>
-                    <p style="margin-top: 10px;"><em>由成员3实现完整功能</em></p>
+                <div class="stats-cards" id="statsCards"></div>
+                <div class="chart-box"><canvas id="statsChart"></canvas></div>
+                <h4 style="margin-bottom:8px;">成绩排名</h4>
+                <ul class="rank-list" id="rankList"></ul>
+            </div>
+
+            <!-- ===================== 成绩分析 ===================== -->
+            <div id="analysis-section" class="card" style="display:none">
+                <div class="card-header"><h3>成绩分析</h3></div>
+                <div class="filter-bar">
+                    <label>选择课程：</label>
+                    <select id="analysisCourseSelect" style="min-width:200px;" onchange="loadAnalysis()"><option value="">全部课程</option></select>
                 </div>
+                <div id="analysisContainer"></div>
             </div>
         </div>
     </div>
 
-    <script>
-        const user = JSON.parse(sessionStorage.getItem('currentUser'));
-        if (!user || user.role !== 'TEACHER') {
+    <!-- ===================== 单条录入弹窗 ===================== -->
+    <div id="singleRecordModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal('singleRecordModal')">
+        <div class="modal">
+            <h3>单条录入成绩</h3>
+            <div id="singleRecordMsg"></div>
+            <div class="form-group">
+                <label>选择学生</label>
+                <select id="singleStudentId"><option value="">-- 请选择学生 --</option></select>
+            </div>
+            <div class="form-group">
+                <label>选择课程</label>
+                <select id="singleCourseId"><option value="">-- 请选择课程 --</option></select>
+            </div>
+            <div class="form-group">
+                <label>成绩（0-100）</label>
+                <input type="number" id="singleScore" min="0" max="100" step="0.5" placeholder="请输入成绩">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-default" onclick="closeModal('singleRecordModal')">取消</button>
+                <button class="btn btn-primary" onclick="submitSingleGrade()" style="width:auto;">确认录入</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== 批量导入弹窗 ===================== -->
+    <div id="batchImportModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal('batchImportModal')">
+        <div class="modal" style="width:640px;">
+            <h3>批量导入成绩</h3>
+            <div id="batchImportMsg"></div>
+            <div class="mb-8"><button class="btn btn-sm btn-primary" onclick="downloadTemplate()">📥 下载CSV模板</button></div>
+            <div class="form-group">
+                <label>上传CSV文件</label>
+                <input type="file" id="batchFileInput" accept=".csv,.xlsx" onchange="previewFile()">
+            </div>
+            <div id="filePreviewArea" class="file-preview" style="display:none;"></div>
+            <div id="batchErrorLog" class="error-log" style="display:none;"></div>
+            <div class="modal-footer">
+                <button class="btn btn-default" onclick="closeModal('batchImportModal')">取消</button>
+                <button class="btn btn-success" id="confirmImportBtn" onclick="confirmBatchImport()" style="width:auto;display:none;">确认导入</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== 成绩修改弹窗 ===================== -->
+    <div id="modifyGradeModal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeModal('modifyGradeModal')">
+        <div class="modal">
+            <h3>修改成绩</h3>
+            <div id="modifyGradeMsg"></div>
+            <div class="form-group">
+                <label>成绩记录ID</label>
+                <input type="text" id="modifyGradeId" readonly style="background:#f5f5f5;">
+            </div>
+            <div class="form-group">
+                <label>原成绩</label>
+                <input type="text" id="modifyOldScore" readonly style="background:#f5f5f5;">
+            </div>
+            <div class="form-group">
+                <label>新成绩（0-100）</label>
+                <input type="number" id="modifyNewScore" min="0" max="100" step="0.5" placeholder="请输入新成绩">
+            </div>
+            <div class="form-group">
+                <label>修改原因</label>
+                <textarea id="modifyReason" rows="3" placeholder="请简要说明修改原因" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;resize:vertical;"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-default" onclick="closeModal('modifyGradeModal')">取消</button>
+                <button class="btn btn-warning" onclick="submitModifyGrade()" style="width:auto;">提交修改</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    const BASE = '/api/teacher/grades';
+    let currentUser, statsChart, gradePage = 1, previewData = [];
+
+    // ==================== 初始化 ====================
+    (function init() {
+        currentUser = JSON.parse(sessionStorage.getItem('currentUser'));
+        if (!currentUser || currentUser.role !== 'TEACHER') {
             window.location.href = '/pages/login.html';
+            return;
         }
-        document.getElementById('userInfo').textContent = '教师: ' + user.username;
+        document.getElementById('userInfo').textContent = '教师: ' + currentUser.username;
+        loadStudentsOptions();
+        loadCoursesOptions();
+        loadGrades();
+    })();
 
-        function showSection(section) {
-            document.querySelectorAll('.content .card').forEach(el => el.style.display = 'none');
-            document.getElementById(section + '-section').style.display = 'block';
-            document.querySelectorAll('.sidebar-menu li').forEach(el => el.classList.remove('active'));
-            event.target.classList.add('active');
+    function logout() { sessionStorage.removeItem('currentUser'); window.location.href = '/pages/login.html'; }
+    function showSection(name) {
+        document.querySelectorAll('.content .card').forEach(el => el.style.display = 'none');
+        document.getElementById(name + '-section').style.display = 'block';
+        document.querySelectorAll('.sidebar-menu li').forEach(el => el.classList.remove('active'));
+        event.target.classList.add('active');
+        if (name === 'record') loadGrades();
+        if (name === 'stats') { loadStatistics(); }
+        if (name === 'analysis') { loadAnalysis(); }
+    }
+
+    // ==================== 加载下拉选项 ====================
+    async function loadStudentsOptions() {
+        try {
+            const res = await fetch(BASE + '/students');
+            const d = await res.json();
+            if (d.code === 200) {
+                const sel = document.getElementById('singleStudentId');
+                sel.innerHTML = '<option value="">-- 请选择学生 --</option>';
+                d.data.forEach(s => { sel.innerHTML += `<option value="${s.id}">${s.name}（${s.className||'未分班'}）</option>`; });
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    async function loadCoursesOptions() {
+        try {
+            const res = await fetch(BASE + '/courses');
+            const d = await res.json();
+            if (d.code === 200) {
+                ['recordCourseFilter','statsCourseSelect','analysisCourseSelect','singleCourseId'].forEach(id => {
+                    const sel = document.getElementById(id);
+                    if (!sel) return;
+                    sel.innerHTML = '<option value="">全部课程</option>';
+                    d.data.forEach(c => { sel.innerHTML += `<option value="${c.id}">${c.name}</option>`; });
+                });
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    // ==================== 成绩列表 ====================
+    async function loadGrades() {
+        try {
+            const courseId = document.getElementById('recordCourseFilter').value;
+            const url = `${BASE}/list?pageNum=${gradePage}&pageSize=10${courseId ? '&courseId='+courseId : ''}`;
+            const res = await fetch(url);
+            const d = await res.json();
+            if (d.code !== 200) return;
+            const page = d.data;
+            let html = '';
+            if (page.records.length === 0) {
+                html = '<tr><td colspan="7" style="text-align:center;color:#bbb;">暂无成绩记录</td></tr>';
+            } else {
+                for (const g of page.records) {
+                    const sRes = await fetch(BASE + '/students');
+                    const sD = await sRes.json();
+                    let sName = '未知', cName = '未知';
+                    if (sD.code === 200) {
+                        const s = sD.data.find(x => x.id === g.studentId);
+                        if (s) sName = s.name;
+                    }
+                    const cRes = await fetch(BASE + '/courses');
+                    const cD = await cRes.json();
+                    if (cD.code === 200) {
+                        const c = cD.data.find(x => x.id === g.courseId);
+                        if (c) cName = c.name;
+                    }
+                    html += `<tr>
+                        <td>${g.studentId}</td>
+                        <td>${sName}</td>
+                        <td>${cName}</td>
+                        <td><strong>${g.score !== null ? g.score : '-'}</strong></td>
+                        <td>${g.gradePoint !== null ? g.gradePoint : '-'}</td>
+                        <td>${g.recordTime ? new Date(g.recordTime).toLocaleString() : '-'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-default" onclick="openModifyModal(${g.id})">修改</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteGrade(${g.id})">删除</button>
+                        </td>
+                    </tr>`;
+                }
+            }
+            document.getElementById('gradeTableBody').innerHTML = html;
+            document.getElementById('gradeTotalInfo').textContent = `共 ${page.total} 条记录`;
+
+            // pagination
+            let pg = `<button ${gradePage <= 1 ? 'disabled style="background:#f5f5f5;color:#ccc;"' : ''} onclick="gradePage=${gradePage-1};loadGrades()">上一页</button>`;
+            for (let i = 1; i <= page.pages; i++) {
+                pg += `<button class="${i === gradePage ? 'active' : ''}" onclick="gradePage=${i};loadGrades()">${i}</button>`;
+            }
+            pg += `<button ${gradePage >= page.pages ? 'disabled style="background:#f5f5f5;color:#ccc;"' : ''} onclick="gradePage=${gradePage+1};loadGrades()">下一页</button>`;
+            document.getElementById('gradePagination').innerHTML = pg;
+        } catch(e) { console.error(e); }
+    }
+
+    // ==================== 单条录入 ====================
+    function showSingleRecord() {
+        document.getElementById('singleRecordMsg').innerHTML = '';
+        document.getElementById('singleScore').value = '';
+        openModal('singleRecordModal');
+    }
+
+    async function submitSingleGrade() {
+        const studentId = document.getElementById('singleStudentId').value;
+        const courseId = document.getElementById('singleCourseId').value;
+        const score = document.getElementById('singleScore').value;
+        const msgEl = document.getElementById('singleRecordMsg');
+
+        if (!studentId || !courseId || !score) {
+            msgEl.innerHTML = '<div class="message message-error">请填写完整信息</div>';
+            return;
+        }
+        if (score < 0 || score > 100) {
+            msgEl.innerHTML = '<div class="message message-error">成绩必须在0-100之间</div>';
+            return;
         }
 
-        function logout() {
-            sessionStorage.removeItem('currentUser');
-            window.location.href = '/pages/login.html';
+        try {
+            const res = await fetch(BASE, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ studentId: Number(studentId), courseId: Number(courseId), score: Number(score) })
+            });
+            const d = await res.json();
+            if (d.code === 200) {
+                msgEl.innerHTML = '<div class="message message-success">录入成功！</div>';
+                setTimeout(() => { closeModal('singleRecordModal'); loadGrades(); }, 800);
+            } else {
+                msgEl.innerHTML = `<div class="message message-error">${d.message}</div>`;
+            }
+        } catch(e) {
+            msgEl.innerHTML = '<div class="message message-error">网络错误</div>';
+        }
+    }
+
+    // ==================== 批量导入 ====================
+    function showBatchImport() {
+        document.getElementById('batchImportMsg').innerHTML = '';
+        document.getElementById('batchFileInput').value = '';
+        document.getElementById('filePreviewArea').style.display = 'none';
+        document.getElementById('batchErrorLog').style.display = 'none';
+        document.getElementById('confirmImportBtn').style.display = 'none';
+        previewData = [];
+        openModal('batchImportModal');
+    }
+
+    function downloadTemplate() {
+        const csv = 'studentId,courseId,score\n1,1,85\n2,1,92\n3,2,78';
+        const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = '成绩导入模板.csv';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+
+    function previewFile() {
+        const file = document.getElementById('batchFileInput').files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const text = e.target.result;
+            const lines = text.split('\n').filter(l => l.trim());
+            const previewArea = document.getElementById('filePreviewArea');
+            const confirmBtn = document.getElementById('confirmImportBtn');
+
+            if (lines.length < 2) {
+                previewArea.style.display = 'block';
+                previewArea.innerHTML = '<p style="color:red;padding:10px;">文件格式错误，至少需要表头+一行数据</p>';
+                confirmBtn.style.display = 'none';
+                return;
+            }
+
+            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+            const si = headers.indexOf('studentid');
+            const ci = headers.indexOf('courseid');
+            const sci = headers.indexOf('score');
+            if (si === -1 || ci === -1 || sci === -1) {
+                previewArea.style.display = 'block';
+                previewArea.innerHTML = '<p style="color:red;padding:10px;">CSV列名需包含 studentId, courseId, score</p>';
+                confirmBtn.style.display = 'none';
+                return;
+            }
+
+            previewData = [];
+            let html = '<table><thead><tr><th>#</th><th>学生ID</th><th>课程ID</th><th>成绩</th><th>状态</th></tr></thead><tbody>';
+            let errCount = 0;
+            for (let i = 1; i < lines.length; i++) {
+                const cols = lines[i].split(',').map(c => c.trim());
+                const sid = Number(cols[si]) || 0;
+                const cid = Number(cols[ci]) || 0;
+                const sc = Number(cols[sci]) || 0;
+                let status = sc >= 0 && sc <= 100 ? '✅' : '❌';
+                if (!sid || !cid) status = '❌';
+                if (status === '❌') errCount++;
+                html += `<tr><td>${i}</td><td>${sid}</td><td>${cid}</td><td>${sc}</td><td>${status}</td></tr>`;
+                previewData.push({ studentId: sid, courseId: cid, score: sc });
+            }
+            html += '</tbody></table>';
+            if (errCount > 0) html += `<p style="color:orange;font-size:13px;">⚠️ ${errCount} 条数据有误，导入时将被跳过</p>`;
+            previewArea.innerHTML = html;
+            previewArea.style.display = 'block';
+            confirmBtn.style.display = previewData.length > 0 ? 'inline-block' : 'none';
+        };
+        reader.readAsText(file);
+    }
+
+    async function confirmBatchImport() {
+        const msgEl = document.getElementById('batchImportMsg');
+        const errEl = document.getElementById('batchErrorLog');
+        msgEl.innerHTML = '';
+        errEl.style.display = 'none';
+        document.getElementById('confirmImportBtn').disabled = true;
+
+        try {
+            const res = await fetch(BASE + '/batch', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(previewData)
+            });
+            const d = await res.json();
+            document.getElementById('confirmImportBtn').disabled = false;
+            if (d.code === 200) {
+                const count = d.data ? d.data.length : 0;
+                msgEl.innerHTML = `<div class="message message-success">成功导入 ${count} 条成绩！</div>`;
+                setTimeout(() => { closeModal('batchImportModal'); loadGrades(); }, 1000);
+            } else {
+                msgEl.innerHTML = `<div class="message message-error">${d.message}</div>`;
+            }
+        } catch(e) {
+            document.getElementById('confirmImportBtn').disabled = false;
+            msgEl.innerHTML = '<div class="message message-error">网络错误</div>';
+        }
+    }
+
+    // ==================== 删除成绩 ====================
+    async function deleteGrade(id) {
+        if (!confirm('确定要删除该成绩记录吗？')) return;
+        try {
+            const res = await fetch(BASE + '/' + id, { method: 'DELETE' });
+            const d = await res.json();
+            if (d.code === 200) loadGrades();
+            else alert(d.message);
+        } catch(e) { alert('删除失败'); }
+    }
+
+    // ==================== 成绩修改 ====================
+    function initModify() {
+        document.getElementById('modifyGradeMsg').innerHTML = '';
+        document.getElementById('modifyGradeId').value = '';
+        document.getElementById('modifyOldScore').value = '';
+        document.getElementById('modifyNewScore').value = '';
+        document.getElementById('modifyReason').value = '';
+        const gid = prompt('请输入要修改的成绩记录ID：');
+        if (!gid) return;
+        openModifyModal(Number(gid));
+    }
+
+    async function openModifyModal(gradeId) {
+        document.getElementById('modifyGradeMsg').innerHTML = '';
+        try {
+            const res = await fetch(BASE + '/' + gradeId);
+            const d = await res.json();
+            if (d.code !== 200) { alert(d.message); return; }
+            const g = d.data;
+            document.getElementById('modifyGradeId').value = g.id;
+            document.getElementById('modifyOldScore').value = g.score !== null ? g.score : '-';
+            document.getElementById('modifyNewScore').value = '';
+            document.getElementById('modifyReason').value = '';
+            openModal('modifyGradeModal');
+        } catch(e) { alert('查询成绩失败'); }
+    }
+
+    async function submitModifyGrade() {
+        const id = document.getElementById('modifyGradeId').value;
+        const newScore = document.getElementById('modifyNewScore').value;
+        const msgEl = document.getElementById('modifyGradeMsg');
+
+        if (!newScore || newScore < 0 || newScore > 100) {
+            msgEl.innerHTML = '<div class="message message-error">请输入有效的新成绩（0-100）</div>';
+            return;
         }
 
-        // TODO: 成员3 - 实现成绩录入、修改、统计的完整功能
-        function showSingleRecord() { alert('功能开发中 - 由成员3实现'); }
-        function showBatchImport() { alert('功能开发中 - 由成员3实现'); }
-    </script>
+        try {
+            const res = await fetch(BASE + '/' + id, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ score: Number(newScore) })
+            });
+            const d = await res.json();
+            if (d.code === 200) {
+                msgEl.innerHTML = '<div class="message message-success">修改成功！已记录修改日志</div>';
+                const tbody = document.getElementById('modifyTableBody');
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">✅ 已提交修改申请（成绩ID: ${id}，新成绩: ${newScore}）</td></tr>`;
+                setTimeout(() => closeModal('modifyGradeModal'), 1000);
+            } else {
+                msgEl.innerHTML = `<div class="message message-error">${d.message}</div>`;
+            }
+        } catch(e) { msgEl.innerHTML = '<div class="message message-error">网络错误</div>'; }
+    }
+
+    // ==================== 成绩统计 ====================
+    async function loadStatistics() {
+        const courseId = document.getElementById('statsCourseSelect').value;
+        try {
+            const res = await fetch(BASE + '/statistics' + (courseId ? '?courseId='+courseId : ''));
+            const d = await res.json();
+            if (d.code !== 200) return;
+            const s = d.data;
+            document.getElementById('statsCards').innerHTML = `
+                <div class="stat-card"><div class="num">${s.validCount||0}</div><div class="label">有效成绩数</div></div>
+                <div class="stat-card"><div class="num">${s.average !== 'N/A' ? s.average : '-'}</div><div class="label">平均分</div></div>
+                <div class="stat-card"><div class="num">${s.maxScore !== 'N/A' ? s.maxScore : '-'}</div><div class="label">最高分</div></div>
+                <div class="stat-card"><div class="num">${s.minScore !== 'N/A' ? s.minScore : '-'}</div><div class="label">最低分</div></div>
+            `;
+
+            // Chart
+            const dist = s.distribution || {};
+            const labels = Object.keys(dist);
+            const values = Object.values(dist);
+            const colors = ['#52c41a','#1890ff','#faad14','#ff7a45','#ff4d4f'];
+            if (statsChart) statsChart.destroy();
+            const ctx = document.getElementById('statsChart').getContext('2d');
+            statsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: '人数',
+                        data: values,
+                        backgroundColor: colors.slice(0, labels.length),
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false }, title: { display: true, text: '分数段分布' } },
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                }
+            });
+
+            // Ranking
+            const rRes = await fetch(BASE + '/ranking' + (courseId ? '?courseId='+courseId : ''));
+            const rD = await rRes.json();
+            if (rD.code === 200) {
+                const list = rD.data || [];
+                let html = '';
+                if (list.length === 0) html = '<li style="color:#bbb;">暂无数据</li>';
+                else list.forEach((item, idx) => {
+                    const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : '';
+                    html += `<li><span class="rank-badge">${medal || item.rank}</span>
+                        <span style="flex:1;">${item.studentName || '未知'}</span>
+                        <span style="color:#667eea;font-weight:bold;">${item.score}</span>
+                        <span style="font-size:12px;color:#999;margin-left:8px;">绩点 ${item.gradePoint || '-'}</span>
+                    </li>`;
+                });
+                document.getElementById('rankList').innerHTML = html;
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    // ==================== 成绩分析 ====================
+    async function loadAnalysis() {
+        const courseId = document.getElementById('analysisCourseSelect').value;
+        const container = document.getElementById('analysisContainer');
+        try {
+            const res = await fetch(BASE + '/statistics' + (courseId ? '?courseId='+courseId : ''));
+            const d = await res.json();
+            if (d.code !== 200) { container.innerHTML = '<p>暂无数据</p>'; return; }
+            const s = d.data;
+            const dist = s.distribution || {};
+            const total = s.validCount || 1;
+            let passCount = 0, failCount = 0;
+            const distKeys = Object.keys(dist);
+            const distVals = Object.values(dist);
+            if (distKeys.length >= 4) {
+                passCount = distVals[0] + distVals[1] + distVals[2] + distVals[3];
+                failCount = distVals[4] || 0;
+            } else {
+                passCount = total - (dist['0-59（不及格）'] || 0);
+                failCount = dist['0-59（不及格）'] || 0;
+            }
+            const passRate = (passCount / total * 100).toFixed(1);
+            const failRate = (failCount / total * 100).toFixed(1);
+            const avgGp = s.average !== 'N/A' ? (Number(s.average) / 25).toFixed(2) : '-';
+
+            let distHtml = '';
+            distKeys.forEach((k, i) => {
+                const pct = (distVals[i] / total * 100).toFixed(1);
+                const barW = Math.max(pct * 2, 2);
+                distHtml += `<tr><td>${k}</td><td>${distVals[i]}</td><td>${pct}%</td><td><div style="height:18px;background:#f0f0f0;border-radius:4px;overflow:hidden;"><div style="height:100%;width:${barW}%;background:${['#52c41a','#1890ff','#faad14','#ff7a45','#ff4d4f'][i]};border-radius:4px;"></div></div></td></tr>`;
+            });
+
+            container.innerHTML = `
+                <div class="grid-2">
+                    <div>
+                        <h4 class="mb-8">分数段分布</h4>
+                        <table class="analysis-table">
+                            <thead><tr><th>分数段</th><th>人数</th><th>占比</th><th>可视化</th></tr></thead>
+                            <tbody>${distHtml}</tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <h4 class="mb-8">排名 Top 10</h4>
+                        <div id="analysisRankList"></div>
+                    </div>
+                </div>
+                <div style="margin-top:20px;padding:16px;background:#f9f9f9;border-radius:8px;">
+                    <h4 class="mb-8">分析结论</h4>
+                    <p>📊 本次统计共 <strong>${s.totalCount}</strong> 条成绩记录，其中有效成绩 <strong>${s.validCount}</strong> 条。</p>
+                    <p>📈 班级平均分：<strong>${s.average}</strong>，最高分 <strong>${s.maxScore}</strong>，最低分 <strong>${s.minScore}</strong>。</p>
+                    <p>✅ 及格率：<strong>${passRate}%</strong>（${passCount}人），不及格率：<strong>${failRate}%</strong>（${failCount}人）。</p>
+                    <p>🎯 平均绩点：<strong>${avgGp}</strong>。</p>
+                    <p style="margin-top:8px;color:#999;font-size:13px;">${passRate >= 80 ? '🏆 班级整体成绩良好，及格率较高。' : passRate >= 60 ? '📋 班级成绩中等，仍有提升空间。' : '⚠️ 班级成绩需重点关注，建议加强辅导。'}</p>
+                </div>
+            `;
+
+            // Analysis ranking
+            const rRes = await fetch(BASE + '/ranking' + (courseId ? '?courseId='+courseId : ''));
+            const rD = await rRes.json();
+            if (rD.code === 200) {
+                const list = (rD.data || []).slice(0, 10);
+                let html = '<ol style="padding-left:20px;">';
+                list.forEach(item => {
+                    html += `<li style="margin-bottom:6px;">${item.studentName || '未知'} — <strong>${item.score}</strong> 分（绩点 ${item.gradePoint || '-'}）</li>`;
+                });
+                html += '</ol>';
+                document.getElementById('analysisRankList').innerHTML = html || '<p style="color:#bbb;">暂无数据</p>';
+            }
+        } catch(e) {
+            container.innerHTML = '<div class="message message-error">分析加载失败: ' + e.message + '</div>';
+        }
+    }
+
+    // ==================== 工具函数 ====================
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+</script>
 </body>
 </html>
