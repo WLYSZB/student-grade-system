@@ -5,6 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>管理员端 - 学生成绩管理系统</title>
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: #fff; border-radius: 8px; padding: 24px; min-width: 480px; max-width: 640px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 24px rgba(0,0,0,0.15); }
+        .modal-content h3 { margin: 0 0 20px; color: #1a1a2e; }
+        .modal-content .form-group { margin-bottom: 16px; }
+        .modal-content .form-group label { display: block; margin-bottom: 4px; color: #555; font-size: 14px; font-weight: 500; }
+        .modal-content .form-group input, .modal-content .form-group select, .modal-content .form-group textarea { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box; }
+        .modal-content .form-group textarea { min-height: 100px; resize: vertical; }
+        .modal-content .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+        .form-row { display: flex; gap: 16px; }
+        .form-row .form-group { flex: 1; }
+        .help-section { padding: 24px; color: #333; line-height: 2; }
+        .help-section h4 { color: #1a1a2e; margin: 24px 0 12px; border-left: 4px solid #4a6cf7; padding-left: 12px; }
+        .help-section h4:first-child { margin-top: 0; }
+        .help-section .faq-item { margin-bottom: 16px; padding: 16px; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #4a6cf7; }
+        .help-section .faq-item .q { font-weight: 600; color: #1a1a2e; }
+        .help-section .faq-item .a { color: #666; margin-top: 4px; }
+        .help-section .role-card { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+        .help-section .role-card.admin { background: #fff3cd; color: #856404; }
+        .help-section .role-card.teacher { background: #cce5ff; color: #004085; }
+        .help-section .role-card.student { background: #d4edda; color: #155724; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 12px; font-weight: 500; }
+        .badge.success { background: #d4edda; color: #155724; }
+        .badge.warning { background: #fff3cd; color: #856404; }
+        .badge.info { background: #cce5ff; color: #004085; }
+        .badge.danger { background: #f8d7da; color: #721c24; }
+        .pagination { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; }
+        .pagination .page-btn { padding: 6px 14px; border: 1px solid #ddd; background: #fff; border-radius: 4px; cursor: pointer; }
+        .pagination .page-btn:hover { background: #f0f0f0; }
+        .pagination .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .pagination .page-info { color: #666; font-size: 14px; }
+        .import-area { border: 2px dashed #ddd; padding: 20px; text-align: center; border-radius: 8px; margin-bottom: 16px; color: #666; cursor: pointer; }
+        .import-area:hover { border-color: #4a6cf7; color: #4a6cf7; }
+        .import-area input[type="file"] { display: none; }
+        .empty-row td { text-align: center; color: #999; padding: 32px; }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -16,89 +53,548 @@
     </nav>
     <div class="layout">
         <ul class="sidebar sidebar-menu">
-            <li class="active" onclick="showSection('user')">用户管理</li>
-            <li onclick="showSection('notice')">通知公告</li>
-            <li onclick="showSection('help')">系统帮助</li>
+            <li class="active" onclick="switchTab('user', this)">用户管理</li>
+            <li onclick="switchTab('notice', this)">通知公告</li>
+            <li onclick="switchTab('help', this)">系统帮助</li>
         </ul>
         <div class="content">
+
+            <!-- ====== 用户管理 ====== -->
             <div id="user-section" class="card">
                 <div class="card-header">
                     <h3>用户管理</h3>
-                    <button class="btn btn-sm btn-primary" onclick="showAddUser()">新增用户</button>
+                    <div>
+                        <button class="btn btn-sm btn-primary" onclick="showUserModal()">新增用户</button>
+                        <button class="btn btn-sm btn-success" onclick="showBatchImport()">批量导入</button>
+                    </div>
+                </div>
+                <div style="margin-bottom: 12px; display: flex; gap: 12px; align-items: center;">
+                    <select id="userRoleFilter" onchange="loadUsers()" style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">全部角色</option>
+                        <option value="ADMIN">管理员</option>
+                        <option value="TEACHER">教师</option>
+                        <option value="STUDENT">学生</option>
+                    </select>
+                    <input type="text" id="userSearchInput" placeholder="搜索用户名..." style="padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; flex:1; max-width:240px;">
+                    <button class="btn btn-sm btn-primary" onclick="loadUsers()">搜索</button>
                 </div>
                 <table>
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th style="width:60px">ID</th>
                             <th>用户名</th>
-                            <th>角色</th>
-                            <th>状态</th>
-                            <th>操作</th>
+                            <th style="width:80px">角色</th>
+                            <th style="width:70px">状态</th>
+                            <th style="width:220px">操作</th>
                         </tr>
                     </thead>
                     <tbody id="userTableBody"></tbody>
                 </table>
+                <div class="pagination">
+                    <button class="page-btn" id="userPrevBtn" onclick="loadUsers(currentUserPage-1)">上一页</button>
+                    <span class="page-info" id="userPageInfo">第 1 页</span>
+                    <button class="page-btn" id="userNextBtn" onclick="loadUsers(currentUserPage+1)">下一页</button>
+                </div>
             </div>
+
+            <!-- ====== 通知公告 ====== -->
             <div id="notice-section" class="card" style="display:none">
                 <div class="card-header">
                     <h3>通知公告管理</h3>
-                    <button class="btn btn-sm btn-primary" onclick="showAddNotice()">发布公告</button>
+                    <button class="btn btn-sm btn-primary" onclick="showNoticeModal()">发布公告</button>
                 </div>
                 <table>
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th style="width:60px">ID</th>
                             <th>标题</th>
-                            <th>目标角色</th>
-                            <th>状态</th>
-                            <th>发布时间</th>
-                            <th>操作</th>
+                            <th style="width:90px">目标角色</th>
+                            <th style="width:80px">状态</th>
+                            <th style="width:140px">发布时间</th>
+                            <th style="width:240px">操作</th>
                         </tr>
                     </thead>
                     <tbody id="noticeTableBody"></tbody>
                 </table>
-            </div>
-            <div id="help-section" class="card" style="display:none">
-                <div class="card-header">
-                    <h3>系统帮助</h3>
+                <div class="pagination">
+                    <button class="page-btn" id="noticePrevBtn" onclick="loadNotices(currentNoticePage-1)">上一页</button>
+                    <span class="page-info" id="noticePageInfo">第 1 页</span>
+                    <button class="page-btn" id="noticeNextBtn" onclick="loadNotices(currentNoticePage+1)">下一页</button>
                 </div>
-                <div style="padding: 20px; color: #666; line-height: 2;">
-                    <p><strong>管理员功能：</strong></p>
-                    <p>1. 用户管理：管理教师和学生账号</p>
-                    <p>2. 通知公告：发布和管理系统通知</p>
-                    <p>3. 系统帮助：查看系统使用说明</p>
-                    <p style="margin-top: 20px;"><strong>常见问题：</strong></p>
-                    <p>Q: 如何批量导入学生？</p>
-                    <p>A: 在用户管理页面，点击"批量导入"按钮，上传CSV文件即可。</p>
-                    <p>Q: 如何重置用户密码？</p>
-                    <p>A: 在用户管理表格中，点击对应用户的"重置密码"按钮。</p>
+            </div>
+
+            <!-- ====== 系统帮助 ====== -->
+            <div id="help-section" class="card" style="display:none">
+                <div class="card-header"><h3>系统帮助</h3></div>
+                <div class="help-section">
+                    <h4>角色说明</h4>
+                    <p><span class="role-card admin">管理员</span> — 管理教师和学生账号、发布通知公告、维护系统运行</p>
+                    <p><span class="role-card teacher">教师</span> — 录入学生成绩、修改成绩申请、查看成绩统计与排名</p>
+                    <p><span class="role-card student">学生</span> — 查询个人成绩、查看成绩趋势分析、接收通知公告</p>
+
+                    <h4>管理员功能操作指南</h4>
+                    <p><strong>1. 用户管理</strong></p>
+                    <p>• 新增用户：点击"新增用户"按钮，填写用户名、密码、角色等信息创建账号</p>
+                    <p>• 编辑用户：点击用户行"编辑"按钮，修改用户信息</p>
+                    <p>• 批量导入：点击"批量导入"，上传 CSV 文件（格式：用户名,姓名,班级,专业,入学年份）</p>
+                    <p>• 重置密码：点击"重置密码"，密码将被重置为 123456</p>
+                    <p>• 启用/禁用：点击"启用"或"禁用"按钮切换账号状态</p>
+                    <p>• 删除用户：点击"删除"按钮移除账号（注意：此操作不可恢复）</p>
+
+                    <p><strong>2. 通知公告管理</strong></p>
+                    <p>• 发布公告：点击"发布公告"，填写标题、内容，选择目标角色后发布</p>
+                    <p>• 编辑公告：对已发布的公告内容进行修改</p>
+                    <p>• 撤回公告：点击"撤回"可将已发布公告变为草稿状态</p>
+                    <p>• 发布草稿：点击"发布"将草稿状态的公告正式发布</p>
+                    <p>• 删除公告：点击"删除"移除公告</p>
+
+                    <h4>常见问题（FAQ）</h4>
+                    <div class="faq-item">
+                        <div class="q">Q: 如何批量导入学生账号？</div>
+                        <div class="a">A: 在"用户管理"标签页中，点击"批量导入"按钮，选择 CSV 文件上传。CSV 格式为：<code>用户名,姓名,班级,专业,入学年份</code>（入学年份可省略）。系统会自动创建用户账号和学生信息，默认密码为 123456。</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="q">Q: 如何重置用户密码？</div>
+                        <div class="a">A: 在用户管理表格中，找到对应用户行，点击"重置密码"按钮，密码将被重置为 <code>123456</code>。</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="q">Q: 如何禁用某个用户账号？</div>
+                        <div class="a">A: 在用户管理表格中，找到对应用户行，若用户当前状态为"启用"，点击"禁用"按钮即可。禁用后该用户无法登录系统。</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="q">Q: 如何让通知只对特定角色可见？</div>
+                        <div class="a">A: 在发布公告时，在"目标角色"下拉框中选择"教师"或"学生"等选项。如果选择"全部"，则所有用户都能看到该公告。</div>
+                    </div>
+                    <div class="faq-item">
+                        <div class="q">Q: 如何撤回已发布的通知？</div>
+                        <div class="a">A: 在通知公告管理表格中，找到已发布的通知，点击"撤回"按钮，该通知状态会变为"草稿"，用户端将不再显示。</div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- ====== 用户编辑弹窗 ====== -->
+    <div class="modal" id="userModal">
+        <div class="modal-content">
+            <h3 id="userModalTitle">新增用户</h3>
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="userFormUsername" required>
+            </div>
+            <div class="form-group">
+                <label>密码（留空则默认123456）</label>
+                <input type="password" id="userFormPassword" placeholder="留空使用默认密码">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>角色</label>
+                    <select id="userFormRole">
+                        <option value="TEACHER">教师</option>
+                        <option value="STUDENT">学生</option>
+                        <option value="ADMIN">管理员</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>状态</label>
+                    <select id="userFormStatus">
+                        <option value="1">启用</option>
+                        <option value="0">禁用</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-sm btn-secondary" onclick="closeModal('userModal')">取消</button>
+                <button class="btn btn-sm btn-primary" onclick="saveUser()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 批量导入弹窗 ====== -->
+    <div class="modal" id="importModal">
+        <div class="modal-content">
+            <h3>批量导入学生</h3>
+            <p style="color:#666;font-size:13px;margin-bottom:12px;">
+                CSV 格式：用户名,姓名,班级,专业,入学年份（入学年份可省略，默认当前年）<br>
+                示例：<code>stu001,张三,计算机1班,计算机科学与技术,2024</code>
+            </p>
+            <div class="import-area" onclick="document.getElementById('importFile').click()">
+                <div id="importFileInfo">点击选择 CSV 文件</div>
+                <input type="file" id="importFile" accept=".csv" onchange="onFileSelected(event)">
+            </div>
+            <div id="importPreview" style="max-height:200px;overflow-y:auto;margin-bottom:12px;"></div>
+            <div class="form-actions">
+                <button class="btn btn-sm btn-secondary" onclick="closeModal('importModal')">取消</button>
+                <button class="btn btn-sm btn-success" id="importSubmitBtn" onclick="doBatchImport()" disabled>开始导入</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 通知编辑弹窗 ====== -->
+    <div class="modal" id="noticeModal">
+        <div class="modal-content">
+            <h3 id="noticeModalTitle">发布公告</h3>
+            <div class="form-group">
+                <label>标题</label>
+                <input type="text" id="noticeFormTitle" required>
+            </div>
+            <div class="form-group">
+                <label>内容</label>
+                <textarea id="noticeFormContent" rows="5" required></textarea>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>目标角色</label>
+                    <select id="noticeFormTarget">
+                        <option value="ALL">全部</option>
+                        <option value="TEACHER">教师</option>
+                        <option value="STUDENT">学生</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>状态</label>
+                    <select id="noticeFormStatus">
+                        <option value="PUBLISHED">发布</option>
+                        <option value="DRAFT">草稿</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button class="btn btn-sm btn-secondary" onclick="closeModal('noticeModal')">取消</button>
+                <button class="btn btn-sm btn-primary" onclick="saveNotice()">保存</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // ====== 全局状态 ======
         const user = JSON.parse(sessionStorage.getItem('currentUser'));
         if (!user || user.role !== 'ADMIN') {
             window.location.href = '/pages/login.html';
         }
         document.getElementById('userInfo').textContent = '管理员: ' + user.username;
 
-        function showSection(section) {
-            document.querySelectorAll('.content .card').forEach(el => el.style.display = 'none');
-            document.getElementById(section + '-section').style.display = 'block';
-            document.querySelectorAll('.sidebar-menu li').forEach(el => el.classList.remove('active'));
-            event.target.classList.add('active');
+        let currentUserPage = 1;
+        let currentNoticePage = 1;
+        let editingUserId = null;
+        let editingNoticeId = null;
+        let importFileData = null;
+
+        // ====== Tab 切换 ======
+        function switchTab(tab, el) {
+            document.querySelectorAll('.content .card').forEach(c => c.style.display = 'none');
+            document.getElementById(tab + '-section').style.display = 'block';
+            document.querySelectorAll('.sidebar-menu li').forEach(li => li.classList.remove('active'));
+            el.classList.add('active');
+            if (tab === 'user') loadUsers();
+            if (tab === 'notice') loadNotices();
         }
 
-        function logout() {
-            sessionStorage.removeItem('currentUser');
-            window.location.href = '/pages/login.html';
+        // ====== 工具函数 ======
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function logout() { sessionStorage.removeItem('currentUser'); window.location.href = '/pages/login.html'; }
+
+        const BASE_USER = '/api/admin/users';
+        const BASE_TEACHER = '/api/admin/teachers';
+        const BASE_STUDENT = '/api/admin/students';
+        const BASE_NOTICE = '/api/admin/notices';
+
+        function getRoleBadge(role) {
+            const map = { ADMIN: 'danger', TEACHER: 'info', STUDENT: 'success' };
+            return `<span class="badge ${map[role] || ''}">${role}</span>`;
         }
 
-        // TODO: 成员5 - 实现用户管理、通知公告的完整CRUD
-        function showAddUser() { alert('功能开发中 - 由成员5实现'); }
-        function showAddNotice() { alert('功能开发中 - 由成员5实现'); }
+        function getStatusBadge(status) {
+            if (status === 1) return `<span class="badge success">启用</span>`;
+            if (status === 0) return `<span class="badge danger">禁用</span>`;
+            return `<span class="badge warning">${status}</span>`;
+        }
+
+        function getNoticeStatusBadge(status) {
+            const s = (status || '').toUpperCase();
+            if (s === 'PUBLISHED') return `<span class="badge success">已发布</span>`;
+            if (s === 'DRAFT') return `<span class="badge warning">草稿</span>`;
+            return `<span class="badge">${status}</span>`;
+        }
+
+        function getTargetBadge(role) {
+            const r = (role || '').toUpperCase();
+            if (r === 'ALL') return `<span class="badge info">全部</span>`;
+            return `<span class="badge">${r}</span>`;
+        }
+
+        // ====== 用户管理 CRUD ======
+        async function loadUsers(page) {
+            if (page) currentUserPage = page;
+            const role = document.getElementById('userRoleFilter').value;
+            const search = document.getElementById('userSearchInput').value.trim();
+            try {
+                let url = `${BASE_USER}?pageNum=${currentUserPage}&pageSize=10`;
+                if (role) url += `&role=${role}`;
+                const res = await fetch(url);
+                const result = await res.json();
+                if (result.code !== 200) { alert('加载失败: ' + result.message); return; }
+                const data = result.data;
+                const tbody = document.getElementById('userTableBody');
+                if (!data.records || data.records.length === 0) {
+                    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">暂无数据</td></tr>';
+                } else {
+                    tbody.innerHTML = data.records.map(u => `
+                        <tr>
+                            <td>${u.id}</td>
+                            <td>${u.username} ${search && u.username.includes(search) ? '🔍' : ''}</td>
+                            <td>${getRoleBadge(u.role)}</td>
+                            <td>${getStatusBadge(u.status)}</td>
+                            <td>
+                                <button class="btn btn-xs btn-primary" onclick="editUser(${u.id},'${u.username}','${u.role}',${u.status})">编辑</button>
+                                ${u.status === 1
+                                    ? `<button class="btn btn-xs btn-warning" onclick="toggleUserStatus(${u.id},0)">禁用</button>`
+                                    : `<button class="btn btn-xs btn-success" onclick="toggleUserStatus(${u.id},1)">启用</button>`}
+                                <button class="btn btn-xs btn-info" onclick="resetUserPwd(${u.id})">重置密码</button>
+                                <button class="btn btn-xs btn-danger" onclick="deleteUser(${u.id})">删除</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+                document.getElementById('userPageInfo').textContent = `第 ${data.current} 页 / 共 ${data.pages} 页（${data.total} 条）`;
+                document.getElementById('userPrevBtn').disabled = data.current <= 1;
+                document.getElementById('userNextBtn').disabled = data.current >= data.pages;
+            } catch (e) { console.error(e); alert('网络错误'); }
+        }
+
+        function showUserModal() {
+            editingUserId = null;
+            document.getElementById('userModalTitle').textContent = '新增用户';
+            document.getElementById('userFormUsername').value = '';
+            document.getElementById('userFormPassword').value = '';
+            document.getElementById('userFormRole').value = 'TEACHER';
+            document.getElementById('userFormStatus').value = '1';
+            openModal('userModal');
+        }
+
+        function editUser(id, username, role, status) {
+            editingUserId = id;
+            document.getElementById('userModalTitle').textContent = '编辑用户';
+            document.getElementById('userFormUsername').value = username;
+            document.getElementById('userFormPassword').value = '';
+            document.getElementById('userFormRole').value = role;
+            document.getElementById('userFormStatus').value = status;
+            openModal('userModal');
+        }
+
+        async function saveUser() {
+            const username = document.getElementById('userFormUsername').value.trim();
+            if (!username) { alert('请输入用户名'); return; }
+            const body = {
+                username,
+                password: document.getElementById('userFormPassword').value || undefined,
+                role: document.getElementById('userFormRole').value,
+                status: parseInt(document.getElementById('userFormStatus').value)
+            };
+            try {
+                const url = editingUserId ? `${BASE_USER}/${editingUserId}` : BASE_USER;
+                const method = editingUserId ? 'PUT' : 'POST';
+                const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                const result = await res.json();
+                if (result.code === 200) {
+                    closeModal('userModal');
+                    loadUsers();
+                } else {
+                    alert(result.message);
+                }
+            } catch (e) { alert('网络错误'); }
+        }
+
+        async function deleteUser(id) {
+            if (!confirm('确认删除该用户？此操作不可恢复！')) return;
+            try {
+                const res = await fetch(`${BASE_USER}/${id}`, { method: 'DELETE' });
+                const result = await res.json();
+                if (result.code === 200) loadUsers();
+                else alert(result.message);
+            } catch (e) { alert('网络错误'); }
+        }
+
+        async function toggleUserStatus(id, status) {
+            try {
+                const res = await fetch(`${BASE_USER}/${id}/status?status=${status}`, { method: 'PUT' });
+                const result = await res.json();
+                if (result.code === 200) loadUsers();
+                else alert(result.message);
+            } catch (e) { alert('网络错误'); }
+        }
+
+        async function resetUserPwd(id) {
+            if (!confirm('确认重置密码为 123456？')) return;
+            try {
+                const res = await fetch(`${BASE_USER}/${id}/reset-password`, { method: 'PUT' });
+                const result = await res.json();
+                if (result.code === 200) { alert('密码已重置为 123456'); loadUsers(); }
+                else alert(result.message);
+            } catch (e) { alert('网络错误'); }
+        }
+
+        // ====== 批量导入 ======
+        function showBatchImport() {
+            importFileData = null;
+            document.getElementById('importFileInfo').textContent = '点击选择 CSV 文件';
+            document.getElementById('importPreview').innerHTML = '';
+            document.getElementById('importSubmitBtn').disabled = true;
+            document.getElementById('importFile').value = '';
+            openModal('importModal');
+        }
+
+        function onFileSelected(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            document.getElementById('importFileInfo').textContent = '已选择: ' + file.name;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const text = ev.target.result;
+                const lines = text.split('\n').filter(l => l.trim());
+                if (lines.length < 2) { alert('CSV 文件至少包含标题行和一行数据'); return; }
+                const preview = document.getElementById('importPreview');
+                preview.innerHTML = '<table><thead><tr><th>用户名</th><th>姓名</th><th>班级</th><th>专业</th><th>入学年份</th></tr></thead><tbody>' +
+                    lines.slice(1).map(line => {
+                        const cols = line.split(',').map(c => c.trim());
+                        return '<tr><td>' + cols.slice(0,5).join('</td><td>') + '</td></tr>';
+                    }).join('') + '</tbody></table>';
+                importFileData = file;
+                document.getElementById('importSubmitBtn').disabled = false;
+            };
+            reader.readAsText(file);
+        }
+
+        async function doBatchImport() {
+            if (!importFileData) return;
+            const formData = new FormData();
+            formData.append('file', importFileData);
+            try {
+                const res = await fetch(`${BASE_STUDENT}/import`, { method: 'POST', body: formData });
+                const result = await res.json();
+                if (result.code === 200) {
+                    alert('导入成功！共导入 ' + result.data + ' 条记录');
+                    closeModal('importModal');
+                    loadUsers();
+                } else {
+                    alert('导入失败: ' + result.message);
+                }
+            } catch (e) { alert('网络错误'); }
+        }
+
+        // ====== 通知公告管理 ======
+        async function loadNotices(page) {
+            if (page) currentNoticePage = page;
+            try {
+                const url = `${BASE_NOTICE}?pageNum=${currentNoticePage}&pageSize=10`;
+                const res = await fetch(url);
+                const result = await res.json();
+                if (result.code !== 200) { alert('加载失败: ' + result.message); return; }
+                const data = result.data;
+                const tbody = document.getElementById('noticeTableBody');
+                if (!data.records || data.records.length === 0) {
+                    tbody.innerHTML = '<tr class="empty-row"><td colspan="6">暂无公告</td></tr>';
+                } else {
+                    tbody.innerHTML = data.records.map(n => `
+                        <tr>
+                            <td>${n.id}</td>
+                            <td>${n.title}</td>
+                            <td>${getTargetBadge(n.targetRole)}</td>
+                            <td>${getNoticeStatusBadge(n.status)}</td>
+                            <td style="font-size:13px;color:#666">${n.publishTime ? new Date(n.publishTime).toLocaleString() : '-'}</td>
+                            <td>
+                                <button class="btn btn-xs btn-primary" onclick="editNotice(${n.id},'${n.title.replace(/'/g,"\\'")}','${(n.content||'').replace(/'/g,"\\'").replace(/\n/g,'\\n')}','${n.targetRole}','${n.status}')">编辑</button>
+                                ${n.status === 'DRAFT'
+                                    ? `<button class="btn btn-xs btn-success" onclick="publishNotice(${n.id})">发布</button>`
+                                    : `<button class="btn btn-xs btn-warning" onclick="retractNotice(${n.id})">撤回</button>`}
+                                <button class="btn btn-xs btn-danger" onclick="deleteNotice(${n.id})">删除</button>
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+                document.getElementById('noticePageInfo').textContent = `第 ${data.current} 页 / 共 ${data.pages} 页（${data.total} 条）`;
+                document.getElementById('noticePrevBtn').disabled = data.current <= 1;
+                document.getElementById('noticeNextBtn').disabled = data.current >= data.pages;
+            } catch (e) { console.error(e); alert('网络错误'); }
+        }
+
+        function showNoticeModal() {
+            editingNoticeId = null;
+            document.getElementById('noticeModalTitle').textContent = '发布公告';
+            document.getElementById('noticeFormTitle').value = '';
+            document.getElementById('noticeFormContent').value = '';
+            document.getElementById('noticeFormTarget').value = 'ALL';
+            document.getElementById('noticeFormStatus').value = 'PUBLISHED';
+            openModal('noticeModal');
+        }
+
+        function editNotice(id, title, content, target, status) {
+            editingNoticeId = id;
+            document.getElementById('noticeModalTitle').textContent = '编辑公告';
+            document.getElementById('noticeFormTitle').value = title;
+            document.getElementById('noticeFormContent').value = content;
+            document.getElementById('noticeFormTarget').value = target;
+            document.getElementById('noticeFormStatus').value = status === 'PUBLISHED' ? 'PUBLISHED' : 'DRAFT';
+            openModal('noticeModal');
+        }
+
+        async function saveNotice() {
+            const title = document.getElementById('noticeFormTitle').value.trim();
+            const content = document.getElementById('noticeFormContent').value.trim();
+            if (!title) { alert('请输入标题'); return; }
+            if (!content) { alert('请输入内容'); return; }
+            const body = {
+                title,
+                content,
+                publisherId: user.id,
+                targetRole: document.getElementById('noticeFormTarget').value,
+                status: document.getElementById('noticeFormStatus').value
+            };
+            try {
+                const url = editingNoticeId ? `${BASE_NOTICE}/${editingNoticeId}` : BASE_NOTICE;
+                const method = editingNoticeId ? 'PUT' : 'POST';
+                const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                const result = await res.json();
+                if (result.code === 200) {
+                    closeModal('noticeModal');
+                    loadNotices();
+                } else {
+                    alert(result.message);
+                }
+            } catch (e) { alert('网络错误'); }
+        }
+
+        async function publishNotice(id) {
+            try {
+                const res = await fetch(`${BASE_NOTICE}/${id}/publish`, { method: 'PUT' });
+                const result = await res.json();
+                if (result.code === 200) loadNotices();
+                else alert(result.message);
+            } catch (e) { alert('网络错误'); }
+        }
+
+        async function retractNotice(id) {
+            try {
+                const res = await fetch(`${BASE_NOTICE}/${id}/retract`, { method: 'PUT' });
+                const result = await res.json();
+                if (result.code === 200) loadNotices();
+                else alert(result.message);
+            } catch (e) { alert('网络错误'); }
+        }
+
+        async function deleteNotice(id) {
+            if (!confirm('确认删除该公告？')) return;
+            try {
+                const res = await fetch(`${BASE_NOTICE}/${id}`, { method: 'DELETE' });
+                const result = await res.json();
+                if (result.code === 200) loadNotices();
+                else alert(result.message);
+            } catch (e) { alert('网络错误'); }
+        }
+
+        // ====== 初始化 ======
+        loadUsers();
     </script>
 </body>
 </html>

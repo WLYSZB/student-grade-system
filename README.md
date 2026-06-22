@@ -67,8 +67,9 @@ mvn spring-boot:run
 │   │   │   └── TeacherController.java       # 教师管理（成员5 ✅）
 │   │   ├── student/
 │   │   │   └── StudentController.java       # 学生端API（成员4 🔲）
-│   │   └── user/
-│   │       └── UserController.java          # 用户管理API（成员5 ✅）
+│   │   ├── user/
+│   │   │   └── UserController.java          # 用户管理API（成员5 ✅）
+│   │   └── NoticeController.java            # 通知公告API（成员5 ✅）
 │   ├── service/
 │   │   ├── auth/
 │   │   │   └── AuthService.java             # 认证业务逻辑（成员2 ✅）
