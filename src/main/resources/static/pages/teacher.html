@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教师端 - 学生成绩管理系统</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <span class="navbar-brand">学生成绩管理系统</span>
+        <div class="navbar-user">
+            <span id="userInfo"></span>
+            <button class="btn btn-sm btn-danger" onclick="logout()">退出登录</button>
+        </div>
+    </nav>
+    <div class="layout">
+        <ul class="sidebar sidebar-menu">
+            <li class="active" onclick="showSection('record')">成绩录入</li>
+            <li onclick="showSection('modify')">成绩修改</li>
+            <li onclick="showSection('stats')">成绩统计</li>
+        </ul>
+        <div class="content">
+            <div id="record-section" class="card">
+                <div class="card-header">
+                    <h3>成绩录入</h3>
+                    <div>
+                        <button class="btn btn-sm btn-primary" onclick="showSingleRecord()">单条录入</button>
+                        <button class="btn btn-sm btn-success" onclick="showBatchImport()">批量导入</button>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>学号</th>
+                            <th>学生姓名</th>
+                            <th>课程</th>
+                            <th>成绩</th>
+                            <th>录入时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gradeTableBody"></tbody>
+                </table>
+            </div>
+            <div id="modify-section" class="card" style="display:none">
+                <div class="card-header">
+                    <h3>成绩修改</h3>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>学生</th>
+                            <th>课程</th>
+                            <th>原成绩</th>
+                            <th>新成绩</th>
+                            <th>修改原因</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modifyTableBody"></tbody>
+                </table>
+            </div>
+            <div id="stats-section" class="card" style="display:none">
+                <div class="card-header">
+                    <h3>成绩统计</h3>
+                </div>
+                <div style="padding: 20px; color: #666;">
+                    <p>班级平均分、最高/低分、分数段分布、排名表等功能</p>
+                    <p style="margin-top: 10px;"><em>由成员3实现完整功能</em></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const user = JSON.parse(sessionStorage.getItem('currentUser'));
+        if (!user || user.role !== 'TEACHER') {
+            window.location.href = '/pages/login.html';
+        }
+        document.getElementById('userInfo').textContent = '教师: ' + user.username;
+
+        function showSection(section) {
+            document.querySelectorAll('.content .card').forEach(el => el.style.display = 'none');
+            document.getElementById(section + '-section').style.display = 'block';
+            document.querySelectorAll('.sidebar-menu li').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function logout() {
+            sessionStorage.removeItem('currentUser');
+            window.location.href = '/pages/login.html';
+        }
+
+        // TODO: 成员3 - 实现成绩录入、修改、统计的完整功能
+        function showSingleRecord() { alert('功能开发中 - 由成员3实现'); }
+        function showBatchImport() { alert('功能开发中 - 由成员3实现'); }
+    </script>
+</body>
+</html>

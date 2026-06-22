@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员端 - 学生成绩管理系统</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <span class="navbar-brand">学生成绩管理系统</span>
+        <div class="navbar-user">
+            <span id="userInfo"></span>
+            <button class="btn btn-sm btn-danger" onclick="logout()">退出登录</button>
+        </div>
+    </nav>
+    <div class="layout">
+        <ul class="sidebar sidebar-menu">
+            <li class="active" onclick="showSection('user')">用户管理</li>
+            <li onclick="showSection('notice')">通知公告</li>
+            <li onclick="showSection('help')">系统帮助</li>
+        </ul>
+        <div class="content">
+            <div id="user-section" class="card">
+                <div class="card-header">
+                    <h3>用户管理</h3>
+                    <button class="btn btn-sm btn-primary" onclick="showAddUser()">新增用户</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>用户名</th>
+                            <th>角色</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody"></tbody>
+                </table>
+            </div>
+            <div id="notice-section" class="card" style="display:none">
+                <div class="card-header">
+                    <h3>通知公告管理</h3>
+                    <button class="btn btn-sm btn-primary" onclick="showAddNotice()">发布公告</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>标题</th>
+                            <th>目标角色</th>
+                            <th>状态</th>
+                            <th>发布时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="noticeTableBody"></tbody>
+                </table>
+            </div>
+            <div id="help-section" class="card" style="display:none">
+                <div class="card-header">
+                    <h3>系统帮助</h3>
+                </div>
+                <div style="padding: 20px; color: #666; line-height: 2;">
+                    <p><strong>管理员功能：</strong></p>
+                    <p>1. 用户管理：管理教师和学生账号</p>
+                    <p>2. 通知公告：发布和管理系统通知</p>
+                    <p>3. 系统帮助：查看系统使用说明</p>
+                    <p style="margin-top: 20px;"><strong>常见问题：</strong></p>
+                    <p>Q: 如何批量导入学生？</p>
+                    <p>A: 在用户管理页面，点击"批量导入"按钮，上传CSV文件即可。</p>
+                    <p>Q: 如何重置用户密码？</p>
+                    <p>A: 在用户管理表格中，点击对应用户的"重置密码"按钮。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const user = JSON.parse(sessionStorage.getItem('currentUser'));
+        if (!user || user.role !== 'ADMIN') {
+            window.location.href = '/pages/login.html';
+        }
+        document.getElementById('userInfo').textContent = '管理员: ' + user.username;
+
+        function showSection(section) {
+            document.querySelectorAll('.content .card').forEach(el => el.style.display = 'none');
+            document.getElementById(section + '-section').style.display = 'block';
+            document.querySelectorAll('.sidebar-menu li').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function logout() {
+            sessionStorage.removeItem('currentUser');
+            window.location.href = '/pages/login.html';
+        }
+
+        // TODO: 成员5 - 实现用户管理、通知公告的完整CRUD
+        function showAddUser() { alert('功能开发中 - 由成员5实现'); }
+        function showAddNotice() { alert('功能开发中 - 由成员5实现'); }
+    </script>
+</body>
+</html>

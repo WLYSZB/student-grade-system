@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学生成绩管理系统 - 登录</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <h2>学生成绩管理系统</h2>
+            <div id="message"></div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" name="username" placeholder="请输入用户名" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" name="password" placeholder="请输入密码" required>
+                </div>
+                <div class="form-group">
+                    <label for="role">角色</label>
+                    <select id="role" name="role">
+                        <option value="ADMIN">管理员</option>
+                        <option value="TEACHER">教师</option>
+                        <option value="STUDENT">学生</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">登 录</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const role = document.getElementById('role').value;
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, role })
+                });
+                const result = await response.json();
+
+                if (result.code === 200) {
+                    sessionStorage.setItem('currentUser', JSON.stringify(result.data));
+                    const userRole = result.data.role;
+                    if (userRole === 'ADMIN') {
+                        window.location.href = '/pages/admin.html';
+                    } else if (userRole === 'TEACHER') {
+                        window.location.href = '/pages/teacher.html';
+                    } else {
+                        window.location.href = '/pages/student.html';
+                    }
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            } catch (err) {
+                showMessage('网络错误，请重试', 'error');
+            }
+        });
+
+        function showMessage(msg, type) {
+            const div = document.getElementById('message');
+            div.className = 'message message-' + type;
+            div.textContent = msg;
+            setTimeout(() => div.textContent = '', 3000);
+        }
+    </script>
+</body>
+</html>
