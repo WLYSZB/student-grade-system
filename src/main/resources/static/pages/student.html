@@ -5,6 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>学生端 - 学生成绩管理系统</title>
     <link rel="stylesheet" href="/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: #fff; border-radius: 8px; padding: 24px; min-width: 480px; max-width: 640px; max-height: 80vh; overflow-y: auto; box-shadow: 0 4px 24px rgba(0,0,0,0.15); }
+        .modal-content h3 { margin: 0 0 16px; color: #1a1a2e; }
+        .modal-content .content-text { white-space: pre-wrap; line-height: 1.8; color: #333; }
+        .modal-content .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
+        .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 16px; }
+        .chart-box { background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 16px; }
+        .chart-box h4 { margin: 0 0 12px; color: #1a1a2e; text-align: center; font-size: 14px; }
+        .chart-box-full { grid-column: 1 / -1; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: #f8f9fa; border-radius: 8px; padding: 16px; text-align: center; border-left: 4px solid #4a6cf7; }
+        .stat-card .stat-value { font-size: 24px; font-weight: 700; color: #1a1a2e; }
+        .stat-card .stat-label { font-size: 13px; color: #666; margin-top: 4px; }
+        .stat-card.pass { border-left-color: #28a745; }
+        .stat-card.gpa { border-left-color: #ffc107; }
+        .stat-card.avg { border-left-color: #4a6cf7; }
+        .stat-card.count { border-left-color: #17a2b8; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 12px; font-weight: 500; }
+        .badge.success { background: #d4edda; color: #155724; }
+        .badge.warning { background: #fff3cd; color: #856404; }
+        .badge.danger { background: #f8d7da; color: #721c24; }
+        .badge.info { background: #cce5ff; color: #004085; }
+        .empty-row td { text-align: center; color: #999; padding: 32px; }
+        .notice-item { padding: 16px; border-bottom: 1px solid #eee; cursor: pointer; }
+        .notice-item:hover { background: #f8f9fa; }
+        .notice-item .notice-title { font-weight: 600; color: #1a1a2e; }
+        .notice-item .notice-time { font-size: 13px; color: #999; margin-top: 4px; }
+        .sort-btn { cursor: pointer; user-select: none; }
+        .sort-btn:hover { color: #4a6cf7; }
+        .filter-bar { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+        .filter-bar select, .filter-bar input { padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .score-high { color: #28a745; font-weight: 600; }
+        .score-mid { color: #4a6cf7; font-weight: 600; }
+        .score-low { color: #dc3545; font-weight: 600; }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -16,85 +54,347 @@
     </nav>
     <div class="layout">
         <ul class="sidebar sidebar-menu">
-            <li class="active" onclick="showSection('query')">成绩查询</li>
-            <li onclick="showSection('analysis')">成绩分析</li>
-            <li onclick="showSection('notice')">通知查看</li>
+            <li class="active" onclick="switchTab('query', this)">成绩查询</li>
+            <li onclick="switchTab('analysis', this)">成绩分析</li>
+            <li onclick="switchTab('notice', this)">通知查看</li>
         </ul>
         <div class="content">
+
+            <!-- ====== 成绩查询 ====== -->
             <div id="query-section" class="card">
                 <div class="card-header">
                     <h3>成绩查询</h3>
-                    <div>
-                        <select id="semesterFilter" style="padding: 6px; margin-right: 10px;">
-                            <option value="">全部学期</option>
-                        </select>
-                        <button class="btn btn-sm btn-primary" onclick="queryGrades()">查询</button>
-                    </div>
+                </div>
+                <div class="filter-bar">
+                    <select id="semesterFilter" style="min-width:160px;">
+                        <option value="">全部学期</option>
+                    </select>
+                    <button class="btn btn-sm btn-primary" onclick="queryGrades()">查询</button>
+                    <span style="margin-left:auto;font-size:13px;color:#666;">
+                        GPA: <strong id="gpaDisplay" style="color:#ffc107;">--</strong>
+                    </span>
                 </div>
                 <table>
                     <thead>
                         <tr>
-                            <th>学期</th>
-                            <th>课程名称</th>
-                            <th>学分</th>
-                            <th>成绩</th>
+                            <th class="sort-btn" onclick="sortGrades('semester')">学期 ↕</th>
+                            <th class="sort-btn" onclick="sortGrades('courseName')">课程名称 ↕</th>
+                            <th class="sort-btn" onclick="sortGrades('credit')">学分 ↕</th>
+                            <th class="sort-btn" onclick="sortGrades('score')">成绩 ↕</th>
                             <th>绩点</th>
                         </tr>
                     </thead>
                     <tbody id="gradeTableBody"></tbody>
                 </table>
-                <div style="margin-top: 20px; padding: 15px; background: #fafafa; border-radius: 4px;">
-                    <strong>GPA: </strong><span id="gpaValue">--</span>
-                </div>
             </div>
+
+            <!-- ====== 成绩分析 ====== -->
             <div id="analysis-section" class="card" style="display:none">
                 <div class="card-header">
                     <h3>成绩分析</h3>
                 </div>
-                <div style="padding: 20px; color: #666;">
-                    <p>个人成绩趋势图、各科对比图、GPA计算等功能</p>
-                    <p style="margin-top: 10px;"><em>由成员4实现完整功能</em></p>
+                <div id="analysisContent">
+                    <div class="stats-grid" id="statsGrid"></div>
+                    <div class="chart-grid">
+                        <div class="chart-box chart-box-full">
+                            <h4>各学期平均分趋势</h4>
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                        <div class="chart-box">
+                            <h4>各科成绩对比</h4>
+                            <canvas id="subjectChart"></canvas>
+                        </div>
+                        <div class="chart-box">
+                            <h4>分数段分布</h4>
+                            <canvas id="distributionChart"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <!-- ====== 通知查看 ====== -->
             <div id="notice-section" class="card" style="display:none">
                 <div class="card-header">
                     <h3>通知公告</h3>
                 </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>标题</th>
-                            <th>发布时间</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="noticeTableBody"></tbody>
-                </table>
+                <div id="noticeList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== 通知详情弹窗 ====== -->
+    <div class="modal" id="noticeModal">
+        <div class="modal-content">
+            <h3 id="noticeModalTitle"></h3>
+            <div class="content-text" id="noticeModalContent"></div>
+            <div class="form-actions">
+                <button class="btn btn-sm btn-secondary" onclick="closeModal('noticeModal')">关闭</button>
             </div>
         </div>
     </div>
 
     <script>
+        // ====== 全局状态 ======
         const user = JSON.parse(sessionStorage.getItem('currentUser'));
         if (!user || user.role !== 'STUDENT') {
             window.location.href = '/pages/login.html';
         }
         document.getElementById('userInfo').textContent = '学生: ' + user.username;
 
-        function showSection(section) {
-            document.querySelectorAll('.content .card').forEach(el => el.style.display = 'none');
-            document.getElementById(section + '-section').style.display = 'block';
-            document.querySelectorAll('.sidebar-menu li').forEach(el => el.classList.remove('active'));
-            event.target.classList.add('active');
+        let gradeData = [];
+        let sortField = null;
+        let sortAsc = true;
+        let trendChart = null, subjectChart = null, distributionChart = null;
+
+        const BASE = '/api/student';
+
+        // ====== 工具 ======
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function logout() { sessionStorage.removeItem('currentUser'); window.location.href = '/pages/login.html'; }
+
+        function getScoreBadge(score) {
+            if (score == null) return '-';
+            const s = parseFloat(score);
+            if (s >= 90) return `<span class="score-high">${s}</span>`;
+            if (s >= 60) return `<span class="score-mid">${s}</span>`;
+            return `<span class="score-low">${s}</span>`;
         }
 
-        function logout() {
-            sessionStorage.removeItem('currentUser');
-            window.location.href = '/pages/login.html';
+        // ====== Tab 切换 ======
+        function switchTab(tab, el) {
+            document.querySelectorAll('.content .card').forEach(c => c.style.display = 'none');
+            document.getElementById(tab + '-section').style.display = 'block';
+            document.querySelectorAll('.sidebar-menu li').forEach(li => li.classList.remove('active'));
+            el.classList.add('active');
+            if (tab === 'query') { queryGrades(); }
+            if (tab === 'analysis') { loadAnalysis(); }
+            if (tab === 'notice') { loadNotices(); }
         }
 
-        // TODO: 成员4 - 实现成绩查询、分析、通知的完整功能
-        function queryGrades() { alert('功能开发中 - 由成员4实现'); }
+        // ====== 1. 成绩查询 ======
+        async function loadSemesters() {
+            try {
+                const res = await fetch(BASE + '/semesters');
+                const result = await res.json();
+                if (result.code === 200 && result.data) {
+                    const sel = document.getElementById('semesterFilter');
+                    result.data.forEach(s => {
+                        const opt = document.createElement('option');
+                        opt.value = s.id;
+                        opt.textContent = s.name;
+                        sel.appendChild(opt);
+                    });
+                }
+            } catch (e) { /* 忽略 */ }
+        }
+
+        async function queryGrades() {
+            const semesterId = document.getElementById('semesterFilter').value;
+            try {
+                const url = BASE + '/grades' + (semesterId ? '?semesterId=' + semesterId : '');
+                const res = await fetch(url);
+                const result = await res.json();
+                if (result.code !== 200) { alert('查询失败'); return; }
+                gradeData = result.data || [];
+                renderGradeTable();
+
+                // 同时刷新GPA
+                const gpaRes = await fetch(BASE + '/gpa' + (semesterId ? '?semesterId=' + semesterId : ''));
+                const gpaResult = await gpaRes.json();
+                if (gpaResult.code === 200) {
+                    document.getElementById('gpaDisplay').textContent = gpaResult.data || '0.00';
+                }
+            } catch (e) { alert('网络错误'); }
+        }
+
+        function renderGradeTable() {
+            const tbody = document.getElementById('gradeTableBody');
+            if (!gradeData || gradeData.length === 0) {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="5">暂无成绩数据</td></tr>';
+                return;
+            }
+            let data = [...gradeData];
+            if (sortField) {
+                data.sort((a, b) => {
+                    let va = a[sortField];
+                    let vb = b[sortField];
+                    if (va == null) va = '';
+                    if (vb == null) vb = '';
+                    const cmp = typeof va === 'string' ? va.localeCompare(vb) : (va > vb ? 1 : (va < vb ? -1 : 0));
+                    return sortAsc ? cmp : -cmp;
+                });
+            }
+            tbody.innerHTML = data.map(g => `
+                <tr>
+                    <td>${g.semesterName || '-'}</td>
+                    <td>${g.courseName || '-'}</td>
+                    <td>${g.credit || '-'}</td>
+                    <td>${getScoreBadge(g.score)}</td>
+                    <td>${g.gradePoint || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function sortGrades(field) {
+            if (sortField === field) {
+                sortAsc = !sortAsc;
+            } else {
+                sortField = field;
+                sortAsc = true;
+            }
+            renderGradeTable();
+        }
+
+        // ====== 2. 成绩分析 ======
+        async function loadAnalysis() {
+            try {
+                const res = await fetch(BASE + '/analysis');
+                const result = await res.json();
+                if (result.code !== 200) { alert('加载分析失败'); return; }
+                const data = result.data;
+                if (!data) return;
+
+                // 统计卡片
+                const statsGrid = document.getElementById('statsGrid');
+                statsGrid.innerHTML = `
+                    <div class="stat-card avg">
+                        <div class="stat-value">${data.average || '0'}</div>
+                        <div class="stat-label">平均分</div>
+                    </div>
+                    <div class="stat-card pass">
+                        <div class="stat-value">${data.passRate || '0'}%</div>
+                        <div class="stat-label">及格率 (≥60分)</div>
+                    </div>
+                    <div class="stat-card gpa">
+                        <div class="stat-value">${data.gpa || '0'}</div>
+                        <div class="stat-label">GPA</div>
+                    </div>
+                    <div class="stat-card count">
+                        <div class="stat-value">${data.totalCount || 0}</div>
+                        <div class="stat-label">课程总数</div>
+                    </div>
+                `;
+
+                // 销毁旧图表
+                if (trendChart) { trendChart.destroy(); trendChart = null; }
+                if (subjectChart) { subjectChart.destroy(); subjectChart = null; }
+                if (distributionChart) { distributionChart.destroy(); distributionChart = null; }
+
+                // 趋势图
+                if (data.trendData && data.trendData.length > 0) {
+                    const ctx1 = document.getElementById('trendChart').getContext('2d');
+                    const semesters = data.trendData.map(t => t.semester);
+                    const averages = data.trendData.map(t => parseFloat(t.average));
+                    trendChart = new Chart(ctx1, {
+                        type: 'line',
+                        data: {
+                            labels: semesters,
+                            datasets: [{
+                                label: '平均分',
+                                data: averages,
+                                borderColor: '#4a6cf7',
+                                backgroundColor: 'rgba(74,108,247,0.1)',
+                                fill: true,
+                                tension: 0.4,
+                                pointBackgroundColor: '#4a6cf7',
+                                pointRadius: 5
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: { min: 0, max: 100, ticks: { stepSize: 20 } }
+                            }
+                        }
+                    });
+                }
+
+                // 各科对比图
+                if (data.subjectData && data.subjectData.length > 0) {
+                    const ctx2 = document.getElementById('subjectChart').getContext('2d');
+                    const subjects = data.subjectData.map(s => s.courseName || '未知');
+                    const scores = data.subjectData.map(s => parseFloat(s.score || 0));
+                    const barColors = scores.map(s => s >= 90 ? '#28a745' : (s >= 60 ? '#4a6cf7' : '#dc3545'));
+                    subjectChart = new Chart(ctx2, {
+                        type: 'bar',
+                        data: {
+                            labels: subjects,
+                            datasets: [{
+                                label: '成绩',
+                                data: scores,
+                                backgroundColor: barColors,
+                                borderRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            indexAxis: 'y',
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { min: 0, max: 100, ticks: { stepSize: 20 } }
+                            }
+                        }
+                    });
+                }
+
+                // 分数段分布
+                if (data.distribution) {
+                    const ctx3 = document.getElementById('distributionChart').getContext('2d');
+                    const labels = Object.keys(data.distribution);
+                    const values = Object.values(data.distribution);
+                    const distColors = ['#28a745', '#4a6cf7', '#ffc107', '#fd7e14', '#dc3545'];
+                    distributionChart = new Chart(ctx3, {
+                        type: 'doughnut',
+                        data: {
+                            labels: labels.map((l, i) => l + '分 (' + values[i] + '人)'),
+                            datasets: [{
+                                data: values,
+                                backgroundColor: distColors.slice(0, labels.length),
+                                borderWidth: 0
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: { position: 'bottom', labels: { padding: 12, font: { size: 12 } } }
+                            }
+                        }
+                    });
+                }
+            } catch (e) { console.error(e); alert('加载分析失败'); }
+        }
+
+        // ====== 3. 通知查看 ======
+        async function loadNotices() {
+            try {
+                const res = await fetch(BASE + '/notices');
+                const result = await res.json();
+                if (result.code !== 200) { return; }
+                const list = document.getElementById('noticeList');
+                const data = result.data || [];
+                if (data.length === 0) {
+                    list.innerHTML = '<div style="padding:40px;text-align:center;color:#999;">暂无通知公告</div>';
+                    return;
+                }
+                list.innerHTML = data.map(n => `
+                    <div class="notice-item" onclick="showNoticeDetail(${n.id},'${n.title.replace(/'/g,"\\'")}','${(n.content||'').replace(/'/g,"\\'").replace(/\n/g,'\\n')}')">
+                        <div class="notice-title">${n.title}</div>
+                        <div class="notice-time">${n.publishTime ? new Date(n.publishTime).toLocaleString() : '-'}</div>
+                    </div>
+                `).join('');
+            } catch (e) { /* ignore */ }
+        }
+
+        function showNoticeDetail(id, title, content) {
+            document.getElementById('noticeModalTitle').textContent = title;
+            document.getElementById('noticeModalContent').textContent = content;
+            openModal('noticeModal');
+        }
+
+        // ====== 初始化 ======
+        loadSemesters();
     </script>
 </body>
 </html>

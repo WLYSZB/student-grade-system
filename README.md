@@ -77,9 +77,12 @@ mvn spring-boot:run
 │   │   │   ├── GradeService.java            # 成绩录入/修改/统计/排名（成员3 ✅）
 │   │   │   └── TeacherService.java          # 教师管理（成员5 ✅）
 │   │   ├── student/
-│   │   │   └── StudentService.java          # 学生端业务（成员4 🔲）
-│   │   └── user/
-│   │       └── UserService.java             # 用户管理（成员5 ✅）
+│   │   │   └── StudentService.java          # 学生端业务（成员4 ✅）
+│   │   ├── user/
+│   │   │   └── UserService.java             # 用户管理（成员5 ✅）
+│   │   ├── NoticeService.java               # 通知公告（成员5 ✅）
+│   │   └── student/
+│   │       └── StudentGradeService.java     # 学生端成绩/分析/通知（成员4 ✅）
 │   ├── mapper/
 │   │   ├── UserMapper.java                  # 用户数据访问（成员2 ✅）
 │   │   ├── GradeMapper.java                 # 成绩数据访问（成员3 ✅）
@@ -94,6 +97,7 @@ mvn spring-boot:run
 │   │   ├── RegisterRequest.java             # 注册请求体（成员2 ✅）
 │   │   ├── ChangePasswordRequest.java       # 修改密码请求体（成员2 ✅）
 │   │   ├── GradeRequest.java                # 成绩导入请求体（成员3 ✅）
+│   │   ├── NoticeRequest.java               # 通知公告请求体（成员5 ✅）
 │   │   ├── StudentRequest.java              # 学生管理请求体（成员5 ✅）
 │   │   ├── TeacherRequest.java              # 教师管理请求体（成员5 ✅）
 │   │   └── UserRequest.java                 # 用户管理请求体（成员5 ✅）
@@ -161,6 +165,36 @@ mvn spring-boot:run
 | `/api/teacher/grades/ranking` | GET | 是 | 成绩排名（按成绩降序） |
 | `/api/teacher/grades/students` | GET | 是 | 获取所有学生列表 |
 | `/api/teacher/grades/courses` | GET | 是 | 获取所有课程列表 |
+
+### 已实现接口（成员5 - 管理员端）
+
+| 接口 | 方法 | 需登录 | 说明 |
+|------|:----:|:------:|------|
+| `/api/admin/users` | GET | 是 | 分页查询用户列表（支持角色筛选） |
+| `/api/admin/users/{id}` | GET | 是 | 获取用户详情 |
+| `/api/admin/users` | POST | 是 | 新增用户 |
+| `/api/admin/users/{id}` | PUT | 是 | 编辑用户 |
+| `/api/admin/users/{id}` | DELETE | 是 | 删除用户 |
+| `/api/admin/users/{id}/status` | PUT | 是 | 启用/禁用用户 |
+| `/api/admin/users/{id}/reset-password` | PUT | 是 | 重置密码为 123456 |
+| `/api/admin/teachers` | GET | 是 | 分页查询教师列表 |
+| `/api/admin/teachers/{id}` | GET | 是 | 获取教师详情 |
+| `/api/admin/teachers` | POST | 是 | 新增教师（自动创建用户账号） |
+| `/api/admin/teachers/{id}` | PUT | 是 | 编辑教师 |
+| `/api/admin/teachers/{id}` | DELETE | 是 | 删除教师 |
+| `/api/admin/students` | GET | 是 | 分页查询学生列表 |
+| `/api/admin/students/{id}` | GET | 是 | 获取学生详情 |
+| `/api/admin/students` | POST | 是 | 新增学生（自动创建用户账号） |
+| `/api/admin/students/{id}` | PUT | 是 | 编辑学生 |
+| `/api/admin/students/{id}` | DELETE | 是 | 删除学生 |
+| `/api/admin/students/import` | POST | 是 | CSV 批量导入学生 |
+| `/api/admin/notices` | GET | 是 | 分页查询公告列表 |
+| `/api/admin/notices/{id}` | GET | 是 | 获取公告详情 |
+| `/api/admin/notices` | POST | 是 | 创建公告 |
+| `/api/admin/notices/{id}` | PUT | 是 | 编辑公告 |
+| `/api/admin/notices/{id}` | DELETE | 是 | 删除公告 |
+| `/api/admin/notices/{id}/publish` | PUT | 是 | 发布公告 |
+| `/api/admin/notices/{id}/retract` | PUT | 是 | 撤回公告 |
 
 ### 错误码
 | 错误码 | 说明 |
