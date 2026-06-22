@@ -36,6 +36,23 @@ public class ExcelUtil {
     }
 
     /**
+     * 读取CSV/Excel，返回行列表（兼容旧调用）
+     * 每行为 String[]，第一行为表头
+     */
+    public static List<String[]> readExcel(InputStream inputStream) throws Exception {
+        List<String[]> result = new ArrayList<>();
+        byte[] bytes = inputStream.readAllBytes();
+        String content = new String(bytes, "UTF-8");
+        String[] lines = content.split("\n");
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty()) continue;
+            result.add(trimmed.split(","));
+        }
+        return result;
+    }
+
+    /**
      * 简易CSV导出
      */
     public static void exportCsv(OutputStream outputStream, String[] headers, List<String[]> data) throws Exception {
